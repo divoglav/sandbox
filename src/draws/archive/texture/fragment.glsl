@@ -18,5 +18,5 @@ out vec4 outColor;
 void main() {
   vec4 texturePixel = texture(u_image, v_textureCoordinates);
 
-  outColor = vec4(texturePixel.xyz, 1);
+  outColor = vec4(texturePixel.rgb, 1);
 }

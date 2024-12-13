@@ -1,24 +1,20 @@
-class Array {
-  static readonly clear = (array: unknown[]) => {
-    array.length = 0;
-  };
+namespace Array {
+  export const clear = (array: unknown[]) => (array.length = 0);
 }
 
-class Async {
-  static readonly wait = async (ms: number): Promise<void> => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  };
+namespace Async {
+  export const wait = async (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-class Images {
-  static readonly loadImage = (source: string, onLoad: () => void) => {
+namespace Images {
+  export const loadImage = (source: string, onLoad: () => void) => {
     const image = new Image();
     image.src = source;
     image.onload = onLoad;
     return image;
   };
 
-  static readonly loadImages = (sources: string[], target: HTMLImageElement[], onAllLoaded: () => void) => {
+  export const loadImages = (sources: string[], target: HTMLImageElement[], onAllLoaded: () => void) => {
     let toLoadCount = sources.length;
 
     const onImageLoaded = () => {
@@ -27,50 +23,49 @@ class Images {
     };
 
     for (let i = 0; i < sources.length; i++) {
-      const image = this.loadImage(sources[i], onImageLoaded);
+      const image = loadImage(sources[i], onImageLoaded);
       target.push(image);
     }
   };
 }
 
-class Mathematics {
-  static readonly PI = 3.141592653589793;
-  static readonly TAU = 6.283185307179586;
+namespace Mathematics {
+  export const PI = 3.141592653589793;
+  export const TAU = 6.283185307179586;
 
-  static readonly SQRT_2 = 1.4142135623730951;
+  export const SQRT_2 = 1.4142135623730951;
 
-  static readonly SIN_60 = 0.8660254037844386;
-  static readonly COS_60 = 0.5;
-  static readonly SIN_45 = 0.7071067811865476;
-  static readonly COS_45 = 0.7071067811865476;
-  static readonly SIN_30 = 0.5;
-  static readonly COS_30 = 0.8660254037844386;
+  export const SIN_60 = 0.8660254037844386;
+  export const COS_60 = 0.5;
+  export const SIN_45 = 0.7071067811865476;
+  export const COS_45 = 0.7071067811865476;
+  export const SIN_30 = 0.5;
+  export const COS_30 = 0.8660254037844386;
 
-  static readonly degreesToRadians = (degrees: number) => degrees * (this.TAU / 360);
+  export const degreesToRadians = (degrees: number) => degrees * (TAU / 360);
 
-  static readonly radiansToDegrees = (radians: number) => radians * (360 / this.TAU);
+  export const radiansToDegrees = (radians: number) => radians * (360 / TAU);
 
-  static readonly lerp = (a: number, b: number, step: number) => a + step * (b - a);
+  export const lerp = (a: number, b: number, step: number) => a + step * (b - a);
 
-  static readonly manhattanDistance = (x1: number, y1: number, x2: number, y2: number) =>
+  export const manhattanDistance = (x1: number, y1: number, x2: number, y2: number) =>
     Math.abs(x1 - x2) + Math.abs(y1 - y2);
 }
 
-class Random {
-  static readonly bool = (): boolean => Math.random() > 0.5;
+namespace Random {
+  export const bool = (): boolean => Math.random() >= 0.5;
 
-  static readonly range = (from: number, to: number) => from + Math.random() * (to - from);
+  export const range = (min: number, max: number) => min + Math.random() * (max - min);
 
-  static readonly rangeInt = (from: number, to: number) => Math.floor(Random.range(from, to));
+  export const rangeInt = (from: number, to: number) => Math.floor(range(from, to));
 }
 
-class Text {
-  static readonly capitalizeFirstLetter = (text: string): string =>
-    text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+namespace Text {
+  export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-class WebGL {
-  static readonly setup = {
+namespace WebGL {
+  export const setup = {
     compileShader: (gl: WebGL2RenderingContext, type: GLenum, source: string) => {
       const shader = gl.createShader(type);
       if (!shader) throw new Error("Unable to create shader");
@@ -109,7 +104,7 @@ class WebGL {
     },
   };
 
-  static readonly utils = {
+  export const utils = {
     resizeCanvasToDisplaySize: (canvas: HTMLCanvasElement, multiplier?: number): boolean => {
       const scale = multiplier || 1;
 
@@ -130,14 +125,9 @@ class WebGL {
       gl.clearColor(0, 0, 0, alpha);
       gl.clear(gl.COLOR_BUFFER_BIT);
     },
-
-    computeKernelWeight: (kernel: number[]) => {
-      const weight = kernel.reduce((prev, curr) => prev + curr);
-      return weight <= 0 ? 1 : weight;
-    },
   };
 
-  static readonly points = {
+  export const points = {
     rectangle: (x: number, y: number, width: number, height: number): number[] => {
       const x1 = x;
       const x2 = x + width;
@@ -148,7 +138,12 @@ class WebGL {
     },
   };
 
-  static readonly kernels = {
+  export const kernels = {
+    computeKernelWeight: (kernel: number[]) => {
+      const weight = kernel.reduce((prev, curr) => prev + curr);
+      return weight <= 0 ? 1 : weight;
+    },
+
     // prettier-ignore
     identity: [
       0, 0, 0,
@@ -200,12 +195,12 @@ class WebGL {
   };
 }
 
-export class Utilities {
-  static readonly Array = Array;
-  static readonly Async = Async;
-  static readonly Images = Images;
-  static readonly Mathematics = Mathematics;
-  static readonly Random = Random;
-  static readonly Text = Text;
-  static readonly WebGL = WebGL;
-}
+export const Utilities = {
+  Array,
+  Async,
+  Images,
+  Mathematics,
+  Random,
+  Text,
+  WebGL,
+};

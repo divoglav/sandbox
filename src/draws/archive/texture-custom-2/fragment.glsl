@@ -15,8 +15,5 @@ out vec4 outColor;
 void main() {
   vec4 texturePixel = texture(u_image, v_textureCoordinates);
 
-  // vec3 color = vec3(0, texturePixel.r, 0);
-  vec3 darken = texturePixel.rgb * 0.5;
-
-  outColor = vec4(darken, 1);
+  outColor = vec4(texturePixel.rgb * 0.6, 1);
 }
