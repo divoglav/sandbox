@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { GpGPU } from "../../draws/gpgpu/gpgpu";
+import { Particles } from "../../draws/particles/particles";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new GpGPU(canvasRef).setup();
+    new Particles(canvasRef).setup();
   });
 
 

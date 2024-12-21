@@ -1,11 +1,23 @@
+Can you analyze this and tell me if there's stuff wrong with it?
+
+Or some things that I can change for performance improvements.
+
+/005   fragment-draw.glsl
+/002   fragment-update.glsl
+/001   particles.ts
+/003   vertex-draw.glsl
+/004   vertex-update.glsl
+
+particles:
+
 import { Utilities } from "../../utilities";
 import vertexUpdate from "./vertex-update.glsl";
 import vertexDraw from "./vertex-draw.glsl";
-import fragmentDraw from "./fragment-draw.glsl";
 import fragmentUpdate from "./fragment-update.glsl";
+import fragmentDraw from "./fragment-draw.glsl";
 
-export class GpGPU {
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+export class Particles {
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   readonly setup = () => {
     const gl = this.canvas.getContext("webgl2");
@@ -27,31 +39,39 @@ export class GpGPU {
     const drawProgram = Utilities.WebGL.Setup.linkProgram(gl, vertexDrawShader, fragmentDrawShader);
 
     Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     this.main(gl, updateProgram, drawProgram);
+  };
+
+  private readonly createRandomArray = (count: number, minRange: number, maxRange: number) => {
+    const temp: number[] = [];
+    for (let i = 0; i < count; i++) {
+      temp.push(Utilities.Random.range(minRange, maxRange));
+    }
+    return temp;
   };
 
   private readonly main = (gl: WebGL2RenderingContext, updateProgram: WebGLProgram, drawProgram: WebGLProgram) => {
     // --- Locations ---
 
-    const updateProgramLocations = {
-      oldPosition: gl.getAttribLocation(updateProgram, "oldPosition"),
-      velocity: gl.getAttribLocation(updateProgram, "velocity"),
-      deltaTime: gl.getUniformLocation(updateProgram, "deltaTime"),
-      canvasDimensions: gl.getUniformLocation(updateProgram, "canvasDimensions"),
-    };
-
-    const drawProgramLocations = {
-      position: gl.getAttribLocation(drawProgram, "position"),
+    const locations = {
+      update: {
+        aOldPosition: gl.getAttribLocation(updateProgram, "a_oldPosition"),
+        aVelocity: gl.getAttribLocation(updateProgram, "a_velocity"),
+        uDeltaTime: gl.getUniformLocation(updateProgram, "u_deltaTime"),
+        uCanvasDimensions: gl.getUniformLocation(updateProgram, "u_canvasDimensions"),
+      },
+      draw: {
+        position: gl.getAttribLocation(drawProgram, "position"), // todo: change later
+      },
     };
 
     // --- Data ---
 
-    const particlesCount = 10000;
-    const positions = new Float32Array(new Array(particlesCount * 2).fill(0).map(() => Utilities.Random.range(-1, 1)));
-    const velocities = new Float32Array(
-      new Array(particlesCount * 2).fill(0).map(() => Utilities.Random.range(0, 0.1)),
-    );
+    const particlesCount = 1000;
+    const positions = new Float32Array(this.createRandomArray(particlesCount * 2, 0, 1));
+    const velocities = new Float32Array(this.createRandomArray(particlesCount * 2, 0.01, 0.1));
 
     // --- Buffers ---
 
@@ -74,40 +94,40 @@ export class GpGPU {
     gl.bindVertexArray(updateVA1);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
-    gl.enableVertexAttribArray(updateProgramLocations.oldPosition);
-    gl.vertexAttribPointer(updateProgramLocations.oldPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aOldPosition);
+    gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
-    gl.enableVertexAttribArray(updateProgramLocations.velocity);
-    gl.vertexAttribPointer(updateProgramLocations.velocity, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aVelocity);
+    gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
 
     // update position VAO 2
     const updateVA2 = gl.createVertexArray();
     gl.bindVertexArray(updateVA2);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
-    gl.enableVertexAttribArray(updateProgramLocations.oldPosition);
-    gl.vertexAttribPointer(updateProgramLocations.oldPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aOldPosition);
+    gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
-    gl.enableVertexAttribArray(updateProgramLocations.velocity);
-    gl.vertexAttribPointer(updateProgramLocations.velocity, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aVelocity);
+    gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
 
     // draw VAO 1
     const drawVA1 = gl.createVertexArray();
     gl.bindVertexArray(drawVA1);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
-    gl.enableVertexAttribArray(drawProgramLocations.position);
-    gl.vertexAttribPointer(drawProgramLocations.position, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.draw.position);
+    gl.vertexAttribPointer(locations.draw.position, 2, gl.FLOAT, false, 0, 0);
 
     // draw VAO 2
     const drawVA2 = gl.createVertexArray();
     gl.bindVertexArray(drawVA2);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
-    gl.enableVertexAttribArray(drawProgramLocations.position);
-    gl.vertexAttribPointer(drawProgramLocations.position, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.draw.position);
+    gl.vertexAttribPointer(locations.draw.position, 2, gl.FLOAT, false, 0, 0);
 
     // --- Transform Feedback ---
 
@@ -152,8 +172,8 @@ export class GpGPU {
       // Compute the new positions.
       gl.useProgram(updateProgram);
       gl.bindVertexArray(current.updateVA);
-      gl.uniform2f(updateProgramLocations.canvasDimensions, gl.canvas.width, gl.canvas.height); // out of render?
-      gl.uniform1f(updateProgramLocations.deltaTime, deltaTime);
+      gl.uniform2f(locations.update.uCanvasDimensions, gl.canvas.width, gl.canvas.height);
+      gl.uniform1f(locations.update.uDeltaTime, deltaTime);
 
       // Turn off the fragment shader.
       gl.enable(gl.RASTERIZER_DISCARD);
@@ -170,15 +190,12 @@ export class GpGPU {
       // Draw the particles.
       gl.useProgram(drawProgram);
       gl.bindVertexArray(current.drawVA);
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
       gl.drawArrays(gl.POINTS, 0, particlesCount);
 
       // --- Swap ---
-      {
-        const temp = current;
-        current = next;
-        next = temp;
-      }
+      const temp = current;
+      current = next;
+      next = temp;
 
       requestAnimationFrame(render);
     };
@@ -186,3 +203,70 @@ export class GpGPU {
     requestAnimationFrame(render);
   };
 }
+
+fragment-draw:
+
+#version 300 es
+precision highp float;
+
+out vec4 outColor;
+
+void main() {
+  outColor = vec4(1, 0, 0, 1);
+}
+
+vertex-draw:
+
+#version 300 es
+
+in vec2 position;
+
+uniform mat4 matrix; 
+
+void main() {
+  gl_Position = vec4(position, 0, 1);
+  gl_PointSize = 5.0;
+}
+
+fragment-update:
+
+#version 300 es
+precision highp float;
+
+void main() {}
+
+
+vertex-update:
+
+#version 300 es
+
+in vec2 a_oldPosition;
+in vec2 a_velocity;
+
+uniform float u_deltaTime;
+uniform vec2 u_canvasDimensions; 
+
+out vec2 newPosition;
+
+// vec2 euclideanModulo(vec2 n, vec2 m) { 
+//   return mod(mod(n, m) + m, m);
+// }
+
+void main() {
+  newPosition = a_oldPosition + a_velocity * u_deltaTime;
+
+  if(newPosition.x >= u_canvasDimensions.x) {
+    newPosition.x = 0.0;
+  } else if (newPosition.x <= 0.0) {
+    newPosition.x = u_canvasDimensions.x;
+  }
+
+  if(newPosition.y >= u_canvasDimensions.y) {
+    newPosition.y = 0.0;
+  } else if (newPosition.y <= 0.0) {
+    newPosition.y = u_canvasDimensions.y;
+  }
+
+  // newPosition = euclideanModulo(newPosition, u_canvasDimensions);
+}
+

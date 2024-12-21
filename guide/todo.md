@@ -1,4 +1,6 @@
-Sand:
+# Particles
+
+# Sand
 
 Create a 2D grid of cells.
 
