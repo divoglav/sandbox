@@ -8,7 +8,6 @@ export const Home = () => {
     new Particles(canvasRef).setup();
   });
 
-
   return (
     <div>
       <canvas ref={canvasRef} />

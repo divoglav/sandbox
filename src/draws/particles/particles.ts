@@ -5,9 +5,18 @@ import fragmentUpdate from "./fragment-update.glsl";
 import fragmentDraw from "./fragment-draw.glsl";
 
 export class Particles {
+  private readonly particlesCount = 10000;
+  private readonly minVelocity = 0.001;
+  private readonly maxVelocity = 0.5;
+
+  private initialized = false;
+
   constructor(private readonly canvas: HTMLCanvasElement) { }
 
   readonly setup = () => {
+    if (this.initialized) throw new Error("Already initialized");
+    this.initialized = true;
+
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
@@ -32,17 +41,24 @@ export class Particles {
     this.main(gl, updateProgram, drawProgram);
   };
 
-  private readonly createRandomArray = (count: number, minRange: number, maxRange: number) => {
+  private readonly generateVelocities = () => {
     const temp: number[] = [];
-    for (let i = 0; i < count; i++) {
-      temp.push(Utilities.Random.range(minRange, maxRange));
+    for (let i = 0; i < this.particlesCount * 2; i++) {
+      const velocity = Utilities.Random.range(this.minVelocity, this.maxVelocity);
+      temp.push(Utilities.Random.bool() ? velocity : -velocity);
+    }
+    return temp;
+  };
+
+  private readonly generatePositions = () => {
+    const temp: number[] = [];
+    for (let i = 0; i < this.particlesCount * 2; i++) {
+      temp.push(Utilities.Random.range(-1, 1));
     }
     return temp;
   };
 
   private readonly main = (gl: WebGL2RenderingContext, updateProgram: WebGLProgram, drawProgram: WebGLProgram) => {
-    // --- Locations ---
-
     const locations = {
       update: {
         aOldPosition: gl.getAttribLocation(updateProgram, "a_oldPosition"),
@@ -56,9 +72,8 @@ export class Particles {
 
     // --- Data ---
 
-    const particlesCount = 1000;
-    const positions = new Float32Array(this.createRandomArray(particlesCount * 2, -1, 1));
-    const velocities = new Float32Array(this.createRandomArray(particlesCount * 2, -0.1, 0.1));
+    const positions = new Float32Array(this.generatePositions());
+    const velocities = new Float32Array(this.generateVelocities());
 
     // --- Buffers ---
 
@@ -158,7 +173,7 @@ export class Particles {
 
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.tf);
       gl.beginTransformFeedback(gl.POINTS);
-      gl.drawArrays(gl.POINTS, 0, particlesCount);
+      gl.drawArrays(gl.POINTS, 0, this.particlesCount);
       gl.endTransformFeedback();
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 
@@ -170,7 +185,7 @@ export class Particles {
       // Draw the particles.
       gl.useProgram(drawProgram);
       gl.bindVertexArray(current.drawVA);
-      gl.drawArrays(gl.POINTS, 0, particlesCount);
+      gl.drawArrays(gl.POINTS, 0, this.particlesCount);
     };
 
     let timeThen: number = 0;
@@ -179,8 +194,8 @@ export class Particles {
       const deltaTime: number = timeNow - timeThen;
       timeThen = timeNow;
 
-      Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      //Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+      //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
       updateLoop(deltaTime);
 
