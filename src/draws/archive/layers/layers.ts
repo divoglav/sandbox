@@ -1,4 +1,4 @@
-import { Utilities } from "../../../utils/utilities";
+import { Utilities } from "../../../utilities";
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
@@ -9,23 +9,28 @@ export class Layers {
 
   constructor(private readonly canvas: HTMLCanvasElement) { }
 
-  readonly setup = () => {
-    const gl = this.canvas.getContext("webgl2");
-    if (!gl) throw new Error("Failed to get WebGL2 context");
-
-    const vertexShader = Utilities.WebGL.setup.compileShader(gl, gl.VERTEX_SHADER, vertex);
-    const fragmentShader = Utilities.WebGL.setup.compileShader(gl, gl.FRAGMENT_SHADER, fragment);
-    const program = Utilities.WebGL.setup.linkProgram(gl, vertexShader, fragmentShader);
-
-    Utilities.WebGL.utils.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.utils.clear(gl, 1);
-
+  private readonly pointerSetup = (onMove: () => void) => {
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.canvas.addEventListener("mousemove", (ev: MouseEvent) => {
       this.pointerX = ev.clientX - canvasBounds.left;
       this.pointerY = ev.clientY - canvasBounds.top;
+      onMove();
     });
+  };
+
+  if(asd === null) return
+
+  readonly setup = () => {
+    const gl = this.canvas.getContext("webgl2");
+    if (!gl) throw new Error("Failed to get WebGL2 context");
+
+    const vertexShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertex);
+    const fragmentShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragment);
+    const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
+
+    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    Utilities.WebGL.Canvas.clear(gl, 1);
 
     const sources = ["assets/layers/0.png", "assets/layers/1.png", "assets/layers/2.png", "assets/layers/3.png"];
     Utilities.Images.loadImages(sources, this.images, () => this.main(gl, program));
@@ -48,7 +53,7 @@ export class Layers {
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array(Utilities.WebGL.points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
+      new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
       gl.STATIC_DRAW,
     );
     gl.enableVertexAttribArray(aPositionLocation);
@@ -56,11 +61,11 @@ export class Layers {
 
     // aTextureCoordinates
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(aTextureCoordinatesLocation);
     gl.vertexAttribPointer(aTextureCoordinatesLocation, 2, gl.FLOAT, false, 0, 0);
-    // Texture.
 
+    // Texture.
     for (let i = 0; i < 4; i++) {
       gl.activeTexture(gl.TEXTURE0 + i);
 
@@ -77,19 +82,22 @@ export class Layers {
     gl.useProgram(program);
     gl.bindVertexArray(vao);
 
-    const render = () => {
-      gl.uniform2f(uResolutionLocation, gl.canvas.width, gl.canvas.height);
-      gl.uniform2f(uPointerLocation, this.pointerX, this.canvas.height - this.pointerY);
-      gl.uniform1i(uImage0Location, 0);
-      gl.uniform1i(uImage1Location, 1);
-      gl.uniform1i(uImage2Location, 2);
-      gl.uniform1i(uImage3Location, 3);
+    gl.uniform1i(uImage0Location, 0);
+    gl.uniform1i(uImage1Location, 1);
+    gl.uniform1i(uImage2Location, 2);
+    gl.uniform1i(uImage3Location, 3);
 
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    const render = () => {
+      requestAnimationFrame(() => {
+        gl.uniform2f(uResolutionLocation, gl.canvas.width, gl.canvas.height);
+        gl.uniform2f(uPointerLocation, this.pointerX, this.canvas.height - this.pointerY);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      });
     };
 
     render();
 
-    this.canvas.addEventListener("mousemove", () => requestAnimationFrame(render));
+    this.pointerSetup(render);
   };
 }

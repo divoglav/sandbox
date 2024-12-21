@@ -1,12 +1,13 @@
 import { onMount } from "solid-js";
-import { Layers } from "../../draws/archive/layers/layers";
+import { GpGPU } from "../../draws/gpgpu/gpgpu";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Layers(canvasRef).setup();
+    new GpGPU(canvasRef).setup();
   });
+
 
   return (
     <div>

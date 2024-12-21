@@ -1,105 +1,188 @@
-import vertex from "./vertex.glsl";
-import fragment from "./fragment.glsl";
+import { Utilities } from "../../utilities";
+import vertexUpdate from "./vertex-update.glsl";
+import vertexDraw from "./vertex-draw.glsl";
+import fragmentDraw from "./fragment-draw.glsl";
+import fragmentUpdate from "./fragment-update.glsl";
 
 export class GpGPU {
   constructor(private readonly canvas: HTMLCanvasElement) {}
-
-  private readonly createShader = (gl: WebGL2RenderingContext, type: GLenum, source: string) => {
-    const shader = gl.createShader(type) as WebGLShader;
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) as string);
-    return shader;
-  };
 
   readonly setup = () => {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    // Setup.
-    const vertexShader = this.createShader(gl, gl.VERTEX_SHADER, vertex);
-    const fragmentShader = this.createShader(gl, gl.FRAGMENT_SHADER, fragment);
-    const program = gl.createProgram();
-    if (!program) throw new Error("program error");
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.transformFeedbackVaryings(program, ["sum", "difference", "product"], gl.SEPARATE_ATTRIBS);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error("link program error");
+    const vertexUpdateShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertexUpdate);
+    const vertexDrawShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertexDraw);
+    const fragmentUpdateShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragmentUpdate);
+    const fragmentDrawShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragmentDraw);
 
-    this.main(gl, program);
+    const updateProgram = Utilities.WebGL.Setup.linkTransformFeedbackProgram(
+      gl,
+      vertexUpdateShader,
+      fragmentUpdateShader,
+      ["newPosition"],
+      "separate",
+    );
+
+    const drawProgram = Utilities.WebGL.Setup.linkProgram(gl, vertexDrawShader, fragmentDrawShader);
+
+    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+
+    this.main(gl, updateProgram, drawProgram);
   };
 
-  private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
-    const aLoc = gl.getAttribLocation(program, "a");
-    const bLoc = gl.getAttribLocation(program, "b");
+  private readonly main = (gl: WebGL2RenderingContext, updateProgram: WebGLProgram, drawProgram: WebGLProgram) => {
+    // --- Locations ---
 
-    const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
-
-    const makeBuffer = (gl: WebGL2RenderingContext, sizeOrData: number) => {
-      const buffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, sizeOrData, gl.STATIC_DRAW);
-      return buffer;
+    const updateProgramLocations = {
+      oldPosition: gl.getAttribLocation(updateProgram, "oldPosition"),
+      velocity: gl.getAttribLocation(updateProgram, "velocity"),
+      deltaTime: gl.getUniformLocation(updateProgram, "deltaTime"),
+      canvasDimensions: gl.getUniformLocation(updateProgram, "canvasDimensions"),
     };
 
-    const makeBufferAndSetAttribute = (gl: WebGL2RenderingContext, data: any, location: any) => {
-      makeBuffer(gl, data);
-      gl.enableVertexAttribArray(location);
-      gl.vertexAttribPointer(location, 1, gl.FLOAT, false, 0, 0);
+    const drawProgramLocations = {
+      position: gl.getAttribLocation(drawProgram, "position"),
     };
 
-    const a = [1, 2, 3, 4, 5, 6];
-    const b = [3, 6, 9, 12, 15, 18];
+    // --- Data ---
 
-    makeBufferAndSetAttribute(gl, new Float32Array(a), aLoc);
-    makeBufferAndSetAttribute(gl, new Float32Array(b), bLoc);
+    const particlesCount = 10000;
+    const positions = new Float32Array(new Array(particlesCount * 2).fill(0).map(() => Utilities.Random.range(-1, 1)));
+    const velocities = new Float32Array(
+      new Array(particlesCount * 2).fill(0).map(() => Utilities.Random.range(0, 0.1)),
+    );
 
-    // ------------------------------
+    // --- Buffers ---
 
-    const transformFeedback = gl.createTransformFeedback();
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
+    const positionBuffer1 = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
 
-    const sumBuffer = makeBuffer(gl, a.length * 4);
-    const differenceBuffer = makeBuffer(gl, a.length * 4);
-    const productBuffer = makeBuffer(gl, a.length * 4);
+    const positionBuffer2 = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
 
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, sumBuffer);
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, differenceBuffer);
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 2, productBuffer);
+    const velocityBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, velocities, gl.DYNAMIC_DRAW);
 
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    // --- Vertex Array Objects ---
+
+    // update position VAO 1
+    const updateVA1 = gl.createVertexArray();
+    gl.bindVertexArray(updateVA1);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
+    gl.enableVertexAttribArray(updateProgramLocations.oldPosition);
+    gl.vertexAttribPointer(updateProgramLocations.oldPosition, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.enableVertexAttribArray(updateProgramLocations.velocity);
+    gl.vertexAttribPointer(updateProgramLocations.velocity, 2, gl.FLOAT, false, 0, 0);
+
+    // update position VAO 2
+    const updateVA2 = gl.createVertexArray();
+    gl.bindVertexArray(updateVA2);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
+    gl.enableVertexAttribArray(updateProgramLocations.oldPosition);
+    gl.vertexAttribPointer(updateProgramLocations.oldPosition, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.enableVertexAttribArray(updateProgramLocations.velocity);
+    gl.vertexAttribPointer(updateProgramLocations.velocity, 2, gl.FLOAT, false, 0, 0);
+
+    // draw VAO 1
+    const drawVA1 = gl.createVertexArray();
+    gl.bindVertexArray(drawVA1);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
+    gl.enableVertexAttribArray(drawProgramLocations.position);
+    gl.vertexAttribPointer(drawProgramLocations.position, 2, gl.FLOAT, false, 0, 0);
+
+    // draw VAO 2
+    const drawVA2 = gl.createVertexArray();
+    gl.bindVertexArray(drawVA2);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
+    gl.enableVertexAttribArray(drawProgramLocations.position);
+    gl.vertexAttribPointer(drawProgramLocations.position, 2, gl.FLOAT, false, 0, 0);
+
+    // --- Transform Feedback ---
+
+    const tf1 = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1); // 1
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positionBuffer1); // 1
+
+    const tf2 = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2); // 2
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positionBuffer2); // 2
+
+    // --- Unbind leftovers ---
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
 
-    // ------------------------------
+    // --- Swaps ---
 
-    gl.useProgram(program);
-
-    gl.bindVertexArray(vao);
-
-    gl.enable(gl.RASTERIZER_DISCARD);
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
-    gl.beginTransformFeedback(gl.POINTS);
-    gl.drawArrays(gl.POINTS, 0, a.length);
-    gl.endTransformFeedback();
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-    gl.disable(gl.RASTERIZER_DISCARD);
-
-    const printResults = (buffer: WebGLBuffer, label: string) => {
-      const results = new Float32Array(a.length);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.getBufferSubData(gl.ARRAY_BUFFER, 0, results);
-
-      console.log(`${label}: ${results}`);
+    let current = {
+      updateVA: updateVA1, // Read from position1.
+      tf: tf2, // Write to position2.
+      drawVA: drawVA2, // Draw with position2.
     };
 
-    console.log(`a: ${a}`);
-    console.log(`b: ${b}`);
+    let next = {
+      updateVA: updateVA2, // Read from position2.
+      tf: tf1, // Write to position 1.
+      drawVA: drawVA1, // Draw with position 1.
+    };
 
-    printResults(sumBuffer!, "sums");
-    printResults(differenceBuffer!, "difference");
-    printResults(productBuffer!, "product");
+    // --- Render ---
+
+    let timeThen: number = 0;
+
+    const render = (timeNow: number) => {
+      timeNow *= 0.001;
+      const deltaTime: number = timeNow - timeThen;
+      timeThen = timeNow;
+
+      // --- Compute ---
+
+      // Compute the new positions.
+      gl.useProgram(updateProgram);
+      gl.bindVertexArray(current.updateVA);
+      gl.uniform2f(updateProgramLocations.canvasDimensions, gl.canvas.width, gl.canvas.height); // out of render?
+      gl.uniform1f(updateProgramLocations.deltaTime, deltaTime);
+
+      // Turn off the fragment shader.
+      gl.enable(gl.RASTERIZER_DISCARD);
+
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.tf);
+      gl.beginTransformFeedback(gl.POINTS);
+      gl.drawArrays(gl.POINTS, 0, particlesCount);
+      gl.endTransformFeedback();
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+      // Turn on using fragment shaders again.
+      gl.disable(gl.RASTERIZER_DISCARD);
+
+      // Draw the particles.
+      gl.useProgram(drawProgram);
+      gl.bindVertexArray(current.drawVA);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.drawArrays(gl.POINTS, 0, particlesCount);
+
+      // --- Swap ---
+      {
+        const temp = current;
+        current = next;
+        next = temp;
+      }
+
+      requestAnimationFrame(render);
+    };
+
+    requestAnimationFrame(render);
   };
 }

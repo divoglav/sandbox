@@ -18,7 +18,7 @@ bool isInsideCircle(vec2 target, vec2 circle, float circleRadius) {
   float yDistance = target.y - circle.y;
 
   float distanceSquared = xDistance * xDistance + yDistance * yDistance;
-  
+
   return distanceSquared <= circleRadius * circleRadius;
 }
 
@@ -66,7 +66,6 @@ void main() {
   vec4 colors[4] = vec4[](color0, color1, color2, color3);
 
   float ringRadius = 50.0;
-
   float ring0 = ringRadius * 1.0;
   float ring1 = ringRadius * 2.0;
   float ring2 = ringRadius * 3.0;
@@ -74,6 +73,5 @@ void main() {
 
   float rings[4] = float[](ring0, ring1, ring2, ring3);
 
-  // outColor = sharpVision(current, u_pointer, rings, colors);
   outColor = smoothVision(current, u_pointer, rings, colors);
 }

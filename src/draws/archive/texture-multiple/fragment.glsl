@@ -28,11 +28,13 @@ void main() {
   vec4 color0 = texture(u_image0, v_textureCoordinates);
   vec4 color1 = texture(u_image1, v_textureCoordinates);
 
-  outColor = vec4(color0.r, color0.g, color1.b, 1.0);
+  // outColor =
+  //   splitVertical(color0, color1, 0.5) *
+  //   splitHorizontal(color0, color1, 0.5);
 
-  outColor =
-    splitVertical(color0, color1, 0.5) *
-    splitHorizontal(color0, color1, 0.5);
+  // outColor = vec4(color0.r, color0.g, color1.b, 1.0);
 
-  outColor = color0 * color1 * 3.0;
+  float brightness = 3.0;
+
+  outColor = color0 * color1 * brightness;
 }

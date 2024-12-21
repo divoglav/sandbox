@@ -1,4 +1,4 @@
-import { Utilities } from "../../../utils/utilities";
+import { Utilities } from "../../../utilities";
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
@@ -9,13 +9,13 @@ export class TextureCustom {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    const vertexShader = Utilities.WebGL.setup.compileShader(gl, gl.VERTEX_SHADER, vertex);
-    const fragmentShader = Utilities.WebGL.setup.compileShader(gl, gl.FRAGMENT_SHADER, fragment);
-    const program = Utilities.WebGL.setup.linkProgram(gl, vertexShader, fragmentShader);
+    const vertexShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertex);
+    const fragmentShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragment);
+    const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
 
-    Utilities.WebGL.utils.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.utils.clear(gl, 1);
+    Utilities.WebGL.Canvas.clear(gl, 1);
 
     this.main(gl, program);
   };
@@ -33,7 +33,7 @@ export class TextureCustom {
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array(Utilities.WebGL.points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
+      new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
       gl.STATIC_DRAW,
     );
     gl.enableVertexAttribArray(aPositionLocation);
@@ -41,7 +41,7 @@ export class TextureCustom {
 
     // aTextureCoordinates
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(aTextureCoordinatesLocation);
     gl.vertexAttribPointer(aTextureCoordinatesLocation, 2, gl.FLOAT, false, 0, 0);
 
@@ -57,7 +57,7 @@ export class TextureCustom {
     const border = 0;
     const format = gl.RED;
     const type = gl.UNSIGNED_BYTE;
-    const data = new Uint8Array([128, 64, 50, 0, 192, 30]);
+    const data = new Uint8Array([128, 64, 50, 0, 120, 30]);
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);

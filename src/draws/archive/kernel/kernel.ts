@@ -1,4 +1,4 @@
-import { Utilities } from "../../../utils/utilities";
+import { Utilities } from "../../../utilities";
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
@@ -11,13 +11,13 @@ export class Kernel {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    const vertexShader = Utilities.WebGL.setup.compileShader(gl, gl.VERTEX_SHADER, vertex);
-    const fragmentShader = Utilities.WebGL.setup.compileShader(gl, gl.FRAGMENT_SHADER, fragment);
-    const program = Utilities.WebGL.setup.linkProgram(gl, vertexShader, fragmentShader);
+    const vertexShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertex);
+    const fragmentShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragment);
+    const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
 
-    Utilities.WebGL.utils.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.utils.clear(gl, 1);
+    Utilities.WebGL.Canvas.clear(gl, 1);
 
     this.image.src = "assets/lateralus.png";
     this.image.onload = () => this.main(gl, program);
@@ -39,7 +39,7 @@ export class Kernel {
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array(Utilities.WebGL.points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
+      new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, gl.canvas.width, gl.canvas.height)),
       gl.STATIC_DRAW,
     );
     gl.enableVertexAttribArray(aPositionLocation);
@@ -47,7 +47,7 @@ export class Kernel {
 
     // aTextureCoordinates
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, 1, 1)), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(aTextureCoordinatesLocation);
     gl.vertexAttribPointer(aTextureCoordinatesLocation, 2, gl.FLOAT, false, 0, 0);
 
@@ -62,9 +62,9 @@ export class Kernel {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
 
     // Kernel.
-    const kernel = Utilities.WebGL.kernels.identity;
+    const kernel = Utilities.WebGL.Kernels.matrices3x3.identity;
 
-    const kernelWeight = Utilities.WebGL.kernels.computeKernelWeight(kernel);
+    const kernelWeight = Utilities.WebGL.Kernels.computeKernelWeight(kernel);
 
     // Draw.
     gl.useProgram(program);
@@ -75,7 +75,7 @@ export class Kernel {
     gl.uniform1fv(uKernelLocation, kernel);
     gl.uniform1f(uKernelWeightLocation, kernelWeight);
 
-    Utilities.WebGL.utils.clear(gl);
+    Utilities.WebGL.Canvas.clear(gl);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
 }
