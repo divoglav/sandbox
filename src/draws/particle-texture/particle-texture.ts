@@ -26,25 +26,25 @@ export class ParticleTexture {
 
   private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
     const locations = {
-      aTextureCoordinates: gl.getAttribLocation(program, "a_textureCoordinates"),
+      aCanvasVertices: gl.getAttribLocation(program, "a_canvasVertices"),
       uTextureIndex: gl.getUniformLocation(program, "u_textureIndex"),
     };
 
     const vertexArray = gl.createVertexArray();
     gl.bindVertexArray(vertexArray);
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    const textureCoordinates = Utilities.WebGL.Points.rectangle(-1, -1, 2, 2);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(locations.aTextureCoordinates);
-    gl.vertexAttribPointer(locations.aTextureCoordinates, 2, gl.FLOAT, false, 0, 0);
+    // --- Attribute ---
 
-    const textureIndex = 0;
-    gl.activeTexture(gl.TEXTURE0 + textureIndex);
+    const canvasVertices = Utilities.WebGL.Points.rectangle(0, 0, 1, 1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(canvasVertices), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(locations.aCanvasVertices);
+    gl.vertexAttribPointer(locations.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // --- Texture ---
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
 
     const target = gl.TEXTURE_2D;
     const level = 0;
@@ -57,8 +57,8 @@ export class ParticleTexture {
 
     const textureData: number[] = [];
     for (let i = 0; i < width * height; i++) {
-      const xPosition = Utilities.Random.range(-1, 1);
-      const yPosition = Utilities.Random.range(-1, 1);
+      const xPosition = Utilities.Random.range(0, 1);
+      const yPosition = Utilities.Random.range(0, 1);
       const angle = Math.random() * Utilities.Mathematics.TAU;
 
       textureData.push(xPosition);
@@ -73,6 +73,8 @@ export class ParticleTexture {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // --- Main ---
 
     gl.useProgram(program);
     gl.bindVertexArray(vertexArray);

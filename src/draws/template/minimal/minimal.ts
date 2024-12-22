@@ -26,7 +26,7 @@ export class Minimal {
 
   private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
     const locations = {
-      aPosition: gl.getAttribLocation(program, "a_position"),
+      aCanvasVertices: gl.getAttribLocation(program, "a_canvasVertices"),
     };
 
     const vertexArray = gl.createVertexArray();
@@ -35,11 +35,11 @@ export class Minimal {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    const data = Utilities.WebGL.Points.rectangle(-1, -1, 2, 2);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+    const canvasVertices = Utilities.WebGL.Points.rectangle(0, 0, 1, 1);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(canvasVertices), gl.STATIC_DRAW);
 
-    gl.enableVertexAttribArray(locations.aPosition);
-    gl.vertexAttribPointer(locations.aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.aCanvasVertices);
+    gl.vertexAttribPointer(locations.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
     gl.useProgram(program);
     gl.bindVertexArray(vertexArray);

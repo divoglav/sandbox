@@ -15,10 +15,12 @@ void main() {
   vec3 data = texture(u_textureIndex, v_textureCoordinates).rgb;
 
   vec3 colors = vec3(
-    data.x * 0.5 + 0.5,
-    data.y * 0.5 + 0.5,
+    data.x,
+    data.y,
     data.z / TAU
   );
 
-  outColor = vec4(colors, 1.0);
+  const float darker = 0.6;
+
+  outColor = vec4(colors * darker, 1.0);
 }
