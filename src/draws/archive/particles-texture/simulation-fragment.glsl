@@ -11,6 +11,7 @@ in vec2 v_coordinates;
 out vec4 outData;
 
 uniform sampler2D u_oldTextureIndex;
+uniform float u_deltaTime;
 
 vec2 warp(vec2 coordinates) {
   vec2 warped = coordinates;
@@ -36,20 +37,16 @@ void main() {
   vec2 position = firstData.xy;
   float angle = firstData.z * TAU;
 
-  const float speed = 0.01;
+  const float speed = 0.4;
 
-  vec2 velocity = vec2(
-    cos(angle) * speed,
-    sin(angle) * speed
-  );
-
-  position += velocity;
+  vec2 direction = vec2(cos(angle), sin(angle));
 
   position = warp(position);
+  position += direction * speed * u_deltaTime;
 
   outData = vec4(
     position,
     firstData.z,
-    1.0
+    0.0
   );
 }

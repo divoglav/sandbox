@@ -1,4 +1,5 @@
 import { Utilities } from "../../../utilities";
+
 import vertexUpdate from "./vertex-update.glsl";
 import vertexDraw from "./vertex-draw.glsl";
 import fragmentUpdate from "./fragment-update.glsl";
@@ -11,7 +12,7 @@ export class Particles {
 
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
   readonly setup = () => {
     if (this.initialized) throw new Error("Already initialized");

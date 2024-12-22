@@ -1,14 +1,16 @@
-import { Utilities } from "../../utilities";
+import { Utilities } from "../../../utilities";
 
 import simulationVertex from "./simulation-vertex.glsl";
 import simulationFragment from "./simulation-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class ParticleTexture {
+export class ParticlesTexture {
+  private readonly width = 20;
+  private readonly height = 20;
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   readonly setup = () => {
     if (this.initialized) throw new Error("Already initialized");
@@ -63,10 +65,12 @@ export class ParticleTexture {
       simulation: {
         aCanvasVertices: gl.getAttribLocation(simulationProgram, "a_canvasVertices"),
         uOldTextureIndex: gl.getUniformLocation(simulationProgram, "u_oldTextureIndex"),
+        uDeltaTime: gl.getUniformLocation(simulationProgram, "u_deltaTime"),
       },
       render: {
-        //aCanvasVertices: gl.getAttribLocation(renderProgram, "a_canvasVertices"),
         uNewTextureIndex: gl.getUniformLocation(renderProgram, "u_newTextureIndex"),
+        uWidth: gl.getUniformLocation(renderProgram, "u_width"),
+        uHeight: gl.getUniformLocation(renderProgram, "u_height"),
       },
     };
 
@@ -85,18 +89,11 @@ export class ParticleTexture {
     const renderVAO = gl.createVertexArray();
     gl.bindVertexArray(renderVAO);
 
-    //gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    //gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(canvasVertices), gl.STATIC_DRAW);
-    //gl.enableVertexAttribArray(locations.render.aCanvasVertices);
-    //gl.vertexAttribPointer(locations.render.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
-
     // --- Textures ---
 
     const target = gl.TEXTURE_2D;
     const level = 0;
     const internalFormat = gl.RGB8;
-    const width = 12;
-    const height = 12;
     const border = 0;
     const format = gl.RGB;
     const type = gl.UNSIGNED_BYTE;
@@ -106,8 +103,8 @@ export class ParticleTexture {
     let firstTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, firstTexture);
 
-    const data = new Uint8Array(this.createTextureData(width * height));
-    gl.texImage2D(target, level, internalFormat, width, height, border, format, type, data);
+    const data = new Uint8Array(this.createTextureData(this.width * this.height));
+    gl.texImage2D(target, level, internalFormat, this.width, this.height, border, format, type, data);
 
     this.disableTextureFiltering(gl);
 
@@ -117,15 +114,21 @@ export class ParticleTexture {
     gl.bindTexture(gl.TEXTURE_2D, nextTexture);
 
     const emptyData = new Uint8Array(data.map(() => 0));
-    gl.texImage2D(target, level, internalFormat, width, height, border, format, type, emptyData);
+    gl.texImage2D(target, level, internalFormat, this.width, this.height, border, format, type, emptyData);
 
     this.disableTextureFiltering(gl);
 
-    const loop = () => {
+    // --- Loop ---
+
+    let timeThen: number = 0;
+    const loop = (timeNow: number) => {
+      timeNow *= 0.001;
+      const deltaTime: number = timeNow - timeThen;
+      timeThen = timeNow;
       // --- Simulation ---
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
-      gl.viewport(0, 0, width, height);
+      gl.viewport(0, 0, this.width, this.height);
 
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextTexture, 0);
 
@@ -136,6 +139,7 @@ export class ParticleTexture {
       gl.bindTexture(gl.TEXTURE_2D, firstTexture);
 
       gl.uniform1i(locations.simulation.uOldTextureIndex, 0);
+      gl.uniform1f(locations.simulation.uDeltaTime, deltaTime);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -151,8 +155,10 @@ export class ParticleTexture {
       gl.bindTexture(gl.TEXTURE_2D, nextTexture);
 
       gl.uniform1i(locations.render.uNewTextureIndex, 0);
+      gl.uniform1f(locations.render.uWidth, this.width);
+      gl.uniform1f(locations.render.uHeight, this.height);
 
-      gl.drawArrays(gl.POINTS, 0, width * height);
+      gl.drawArrays(gl.POINTS, 0, this.width * this.height);
 
       // --- Swap ---
 
@@ -163,6 +169,6 @@ export class ParticleTexture {
       requestAnimationFrame(loop);
     };
 
-    loop();
+    loop(0);
   };
 }
