@@ -3,7 +3,7 @@ import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
 export class TextureCustom2 {
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   readonly setup = () => {
     const gl = this.canvas.getContext("webgl2");
@@ -15,7 +15,8 @@ export class TextureCustom2 {
 
     Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.Canvas.clear(gl, 1);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     this.main(gl, program);
   };

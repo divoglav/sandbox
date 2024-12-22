@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { Particles } from "../../draws/particles/particles";
+import { ParticleTexture } from "../../draws/particle-texture/particle-texture";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Particles(canvasRef).setup();
+    new ParticleTexture(canvasRef).setup();
   });
 
   return (

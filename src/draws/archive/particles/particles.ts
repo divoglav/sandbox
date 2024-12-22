@@ -1,11 +1,11 @@
-import { Utilities } from "../../utilities";
+import { Utilities } from "../../../utilities";
 import vertexUpdate from "./vertex-update.glsl";
 import vertexDraw from "./vertex-draw.glsl";
 import fragmentUpdate from "./fragment-update.glsl";
 import fragmentDraw from "./fragment-draw.glsl";
 
 export class Particles {
-  private readonly particlesCount = 10000;
+  private readonly particlesCount = 1000;
   private readonly minVelocity = 0.001;
   private readonly maxVelocity = 0.5;
 
@@ -194,8 +194,8 @@ export class Particles {
       const deltaTime: number = timeNow - timeThen;
       timeThen = timeNow;
 
-      //Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
-      //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
       updateLoop(deltaTime);
 

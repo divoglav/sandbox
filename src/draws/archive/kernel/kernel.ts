@@ -3,6 +3,8 @@ import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
 export class Kernel {
+  private readonly kernel = Utilities.WebGL.Kernels.matrices3x3.edgeDetection;
+
   private image = new Image();
 
   constructor(private readonly canvas: HTMLCanvasElement) { }
@@ -17,7 +19,8 @@ export class Kernel {
 
     Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.Canvas.clear(gl, 1);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     this.image.src = "assets/lateralus.png";
     this.image.onload = () => this.main(gl, program);
@@ -62,9 +65,7 @@ export class Kernel {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
 
     // Kernel.
-    const kernel = Utilities.WebGL.Kernels.matrices3x3.identity;
-
-    const kernelWeight = Utilities.WebGL.Kernels.computeKernelWeight(kernel);
+    const kernelWeight = Utilities.WebGL.Kernels.computeKernelWeight(this.kernel);
 
     // Draw.
     gl.useProgram(program);
@@ -72,10 +73,10 @@ export class Kernel {
 
     gl.uniform2f(uResolutionLocation, gl.canvas.width, gl.canvas.height);
     gl.uniform1i(uImageLocation, 0);
-    gl.uniform1fv(uKernelLocation, kernel);
+    gl.uniform1fv(uKernelLocation, this.kernel);
     gl.uniform1f(uKernelWeightLocation, kernelWeight);
 
-    Utilities.WebGL.Canvas.clear(gl);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   };
 }

@@ -20,7 +20,8 @@ export class Texture {
 
     Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    Utilities.WebGL.Canvas.clear(gl, 1);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.canvas.addEventListener("mousemove", (ev: MouseEvent) => {

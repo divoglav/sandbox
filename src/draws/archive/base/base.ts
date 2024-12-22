@@ -9,22 +9,12 @@ export class Base {
   private pointerY: number = 0;
   private time: number = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   readonly setup = () => {
     // Gets the WebGL context.
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
-
-    console.log("adsadasd");
-    console.log("adsadasd");
-    console.log("adsadasd");
-    Math.random() * 118;
-    Math.random() * 100;
-    Math.random() * 100;
-
-    let arr: number[] = [];
-    arr.push(Math.random() * 12);
 
     // Compiles shader programs from the GLSL source code.
     const vertexShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertex);
@@ -35,33 +25,8 @@ export class Base {
 
     Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    if (10 < Math.random()) return;
-
-    type Aer = {
-      kek: 10;
-      omg: "hey";
-    };
-
-    const kekekee: Aer = {
-      kek: 10,
-      omg: "hey",
-    };
-
-    enum Asd {
-      KEK_LOL = 12,
-      KEK_LO6L = 13,
-    }
-
-    Asd.KEK_LOL;
-
-    interface LMAO {
-      dosmth(): Promise<void>;
-    }
-
-    const asdeeeeeee: LMAO = {
-      dosmth = async () => {},
-    };
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.canvas.addEventListener("mousemove", (ev: MouseEvent) => {
@@ -121,7 +86,7 @@ export class Base {
       gl.uniform2f(uPointerLocation, this.pointerX, this.pointerY);
       gl.uniform1f(uTimeLocation, this.time);
 
-      Utilities.WebGL.Canvas.clear(gl, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
       requestAnimationFrame(render);
