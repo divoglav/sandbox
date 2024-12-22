@@ -121,44 +121,48 @@ export class ParticleTexture {
 
     this.disableTextureFiltering(gl);
 
-    // --- Simulation ---
+    const loop = () => {
+      // --- Simulation ---
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
-    gl.viewport(0, 0, width, height);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+      gl.viewport(0, 0, width, height);
 
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextTexture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextTexture, 0);
 
-    gl.useProgram(simulationProgram);
-    gl.bindVertexArray(simulationVAO);
+      gl.useProgram(simulationProgram);
+      gl.bindVertexArray(simulationVAO);
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, firstTexture);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, firstTexture);
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.uniform1i(locations.simulation.uOldTextureIndex, 0);
 
-    gl.uniform1i(locations.simulation.uOldTextureIndex, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      // --- Render ---
 
-    // --- Render ---
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.useProgram(renderProgram);
+      gl.bindVertexArray(renderVAO);
 
-    gl.useProgram(renderProgram);
-    gl.bindVertexArray(renderVAO);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, nextTexture);
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, nextTexture);
+      gl.uniform1i(locations.render.uNewTextureIndex, 0);
 
-    gl.uniform1i(locations.render.uNewTextureIndex, 0);
+      gl.drawArrays(gl.POINTS, 0, width * height);
 
-    gl.drawArrays(gl.POINTS, 0, width * height);
+      // --- Swap ---
 
-    // --- Swap ---
+      let temp = firstTexture;
+      firstTexture = nextTexture;
+      nextTexture = temp;
 
-    let temp = firstTexture;
-    firstTexture = nextTexture;
-    nextTexture = temp;
+      requestAnimationFrame(loop);
+    };
+
+    loop();
   };
 }
