@@ -1,12 +1,11 @@
 import { onMount } from "solid-js";
 import { ParticleTexture } from "../../draws/particle-texture/particle-texture";
-import { Minimal } from "../../draws/template/minimal/minimal";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Minimal(canvasRef).setup();
+    new ParticleTexture(canvasRef).setup();
   });
 
   return (
