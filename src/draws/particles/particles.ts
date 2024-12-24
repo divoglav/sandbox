@@ -7,6 +7,10 @@ import renderFragment from "./render-fragment.glsl";
 
 export class Particles {
   private readonly particlesCount = 10000;
+  private readonly brightness = 3;
+  private readonly speed = 0.03;
+  private readonly minSize = 1.5;
+  private readonly sizeScalar = 3.0;
 
   private initialized = false;
   private image = new Image();
@@ -67,6 +71,25 @@ export class Particles {
     Utilities.WebGL.Texture.applyClampAndNearest(gl);
   }
 
+  private setupUniformBlock(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
+    const blockIndexInUpdate = gl.getUniformBlockIndex(programs.update, "GlobalStaticData");
+    const blockIndexInRender = gl.getUniformBlockIndex(programs.render, "GlobalStaticData");
+
+    gl.uniformBlockBinding(programs.update, blockIndexInUpdate, 0);
+    gl.uniformBlockBinding(programs.render, blockIndexInRender, 0);
+
+    const data = [this.brightness, this.speed, this.minSize, this.sizeScalar];
+
+    const uniformBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.length * 16, gl.STATIC_DRAW);
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformBuffer);
+
+    const globalStaticData = new Float32Array(data);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, globalStaticData);
+  }
+
   private createState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const locations = {
       update: {
@@ -79,6 +102,8 @@ export class Particles {
         uTextureIndex: gl.getUniformLocation(programs.render, "u_textureIndex"),
       },
     };
+
+    this.setupUniformBlock(gl, programs);
 
     const data = {
       positions: new Float32Array(this.generatePositionData()),
@@ -159,7 +184,7 @@ export class Particles {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
 
-    return { locations, vertexArrayObjects, transformFeedbacks };
+    return { locations: locations, vertexArrayObjects, transformFeedbacks };
   }
 
   private main(gl: WebGL2RenderingContext) {

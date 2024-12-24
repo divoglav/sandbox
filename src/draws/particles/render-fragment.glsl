@@ -5,8 +5,13 @@ flat in vec3 v_texelColor;
 
 out vec4 outColor;
 
-void main() {
-  const float brightness = 3.0;
+uniform GlobalStaticData {
+  float u_brightness;
+  float u_speed;
+  float u_minSize;
+  float u_sizeScalar;
+};
 
-  outColor = vec4(v_texelColor * brightness, 1.0);
+void main() {
+  outColor = vec4(v_texelColor * u_brightness, 1.0);
 }
