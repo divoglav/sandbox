@@ -13,6 +13,8 @@ import renderFragment from "./render-fragment.glsl";
 
 // TODO: figure out how to reduce FPS to a constant.
 
+// TODO: Godfather image raidn.
+
 export class Particles {
   private readonly particlesCount = 3000;
 
