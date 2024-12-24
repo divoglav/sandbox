@@ -1,4 +1,5 @@
 import { Utilities } from "../../../utilities";
+
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
@@ -9,9 +10,9 @@ export class Base {
   private pointerY: number = 0;
   private time: number = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  readonly setup = () => {
+  setup() {
     // Gets the WebGL context.
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
@@ -23,7 +24,7 @@ export class Base {
     // Creates a new WebGL program, attaches the shaders to it, and links it to WebGL.
     const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
 
-    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+    Utilities.WebGL.Canvas.resizeToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -35,9 +36,9 @@ export class Base {
     });
 
     this.main(gl, program);
-  };
+  }
 
-  private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
+  private main(gl: WebGL2RenderingContext, program: WebGLProgram) {
     // Gets the locations of variables on the GLSL shader programs.
     const aPositionLocation = gl.getAttribLocation(program, "a_position");
     const uResolutionLocation = gl.getUniformLocation(program, "u_resolution");
@@ -93,5 +94,5 @@ export class Base {
     };
 
     render();
-  };
+  }
 }

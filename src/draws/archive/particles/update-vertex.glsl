@@ -5,9 +5,9 @@ const vec2 DIMENSIONS = vec2(-1.0, 1.0);
 in vec2 a_oldPosition;
 in vec2 a_velocity;
 
-uniform float u_deltaTime;
-
 out vec2 newPosition;
+
+uniform float u_deltaTime;
 
 vec2 warp(vec2 coordinates) {
   vec2 warped = coordinates;
@@ -28,7 +28,11 @@ vec2 warp(vec2 coordinates) {
 }
 
 void main() {
-  newPosition = a_oldPosition + a_velocity * u_deltaTime;
+  const float speed = 0.05;
+
+  vec2 velocity = a_velocity * u_deltaTime * speed;
+
+  newPosition = a_oldPosition + velocity;
 
   newPosition = warp(newPosition);
 }

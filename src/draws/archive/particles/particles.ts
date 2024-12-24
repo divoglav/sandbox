@@ -1,171 +1,202 @@
 import { Utilities } from "../../../utilities";
 
-import vertexUpdate from "./vertex-update.glsl";
-import vertexDraw from "./vertex-draw.glsl";
-import fragmentUpdate from "./fragment-update.glsl";
-import fragmentDraw from "./fragment-draw.glsl";
+import updateVertex from "./update-vertex.glsl";
+import updateFragment from "./update-fragment.glsl";
+import renderVertex from "./render-vertex.glsl";
+import renderFragment from "./render-fragment.glsl";
+
+// TODO: clarity of this, since this is the way.
+
+// TODO: normalize to [0, 1] instead of [-1, 1].
+
+// TODO: normalize shaders as well.
+
+// TODO: figure out how to reduce FPS to a constant.
 
 export class Particles {
-  private readonly particlesCount = 1000;
-  private readonly minVelocity = 0.001;
-  private readonly maxVelocity = 0.5;
+  private readonly particlesCount = 3000;
 
   private initialized = false;
+  private image = new Image();
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  readonly setup = () => {
-    if (this.initialized) throw new Error("Already initialized");
+  setup() {
+    if (this.initialized) throw "Already initialized";
     this.initialized = true;
 
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    const vertexUpdateShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertexUpdate);
-    const vertexDrawShader = Utilities.WebGL.Setup.compileShader(gl, "vertex", vertexDraw);
-    const fragmentUpdateShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragmentUpdate);
-    const fragmentDrawShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragmentDraw);
+    this.image.src = "assets/tenthousand.png";
+    this.image.onload = () => this.main(gl);
+  }
 
-    const updateProgram = Utilities.WebGL.Setup.linkTransformFeedbackProgram(
-      gl,
-      vertexUpdateShader,
-      fragmentUpdateShader,
-      ["newPosition"],
-      "separate",
-    );
+  private createPrograms(gl: WebGL2RenderingContext) {
+    const updateVS = Utilities.WebGL.Setup.compileShader(gl, "vertex", updateVertex);
+    const updateFS = Utilities.WebGL.Setup.compileShader(gl, "fragment", updateFragment);
+    const renderVS = Utilities.WebGL.Setup.compileShader(gl, "vertex", renderVertex);
+    const renderFS = Utilities.WebGL.Setup.compileShader(gl, "fragment", renderFragment);
 
-    const drawProgram = Utilities.WebGL.Setup.linkProgram(gl, vertexDrawShader, fragmentDrawShader);
+    return {
+      update: Utilities.WebGL.Setup.linkTransformFeedbackProgram(gl, updateVS, updateFS, ["newPosition"], "separate"),
+      render: Utilities.WebGL.Setup.linkProgram(gl, renderVS, renderFS),
+    };
+  }
 
-    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  private generateVelocityData() {
+    const velocities: number[] = [];
+    for (let i = 0; i < this.particlesCount; i++) {
+      const angle = Utilities.Random.rangeInt(0, 360);
 
-    this.main(gl, updateProgram, drawProgram);
-  };
+      const sin = Utilities.TrigCache.sin(angle);
+      const cos = Utilities.TrigCache.cos(angle);
 
-  private readonly generateVelocities = () => {
-    const temp: number[] = [];
-    for (let i = 0; i < this.particlesCount * 2; i++) {
-      const velocity = Utilities.Random.range(this.minVelocity, this.maxVelocity);
-      temp.push(Utilities.Random.bool() ? velocity : -velocity);
+      velocities.push(cos);
+      velocities.push(sin);
     }
-    return temp;
-  };
+    return velocities;
+  }
 
-  private readonly generatePositions = () => {
-    const temp: number[] = [];
-    for (let i = 0; i < this.particlesCount * 2; i++) {
-      temp.push(Utilities.Random.range(-1, 1));
+  private generatePositionData() {
+    const positions: number[] = [];
+    for (let i = 0; i < this.particlesCount; i++) {
+      positions.push(Utilities.Random.range(-1, 1));
+      positions.push(Utilities.Random.range(-1, 1));
     }
-    return temp;
-  };
+    return positions;
+  }
 
-  private readonly main = (gl: WebGL2RenderingContext, updateProgram: WebGLProgram, drawProgram: WebGLProgram) => {
+  private createTexture(gl: WebGL2RenderingContext) {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    Utilities.WebGL.Texture.applyClampAndNearest(gl);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
+  }
+
+  private createState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const locations = {
       update: {
-        aOldPosition: gl.getAttribLocation(updateProgram, "a_oldPosition"),
-        aVelocity: gl.getAttribLocation(updateProgram, "a_velocity"),
-        uDeltaTime: gl.getUniformLocation(updateProgram, "u_deltaTime"),
+        aOldPosition: gl.getAttribLocation(programs.update, "a_oldPosition"),
+        aVelocity: gl.getAttribLocation(programs.update, "a_velocity"),
+        uDeltaTime: gl.getUniformLocation(programs.update, "u_deltaTime"),
       },
-      draw: {
-        position: gl.getAttribLocation(drawProgram, "position"), // todo: change later
+      render: {
+        aCanvasVertices: gl.getAttribLocation(programs.render, "a_canvasVertices"),
+        uTextureIndex: gl.getUniformLocation(programs.render, "u_textureIndex"),
       },
     };
 
-    // --- Data ---
+    const data = {
+      positions: new Float32Array(this.generatePositionData()),
+      velocities: new Float32Array(this.generateVelocityData()),
+    };
 
-    const positions = new Float32Array(this.generatePositions());
-    const velocities = new Float32Array(this.generateVelocities());
+    const buffers = {
+      firstPosition: gl.createBuffer()!,
+      nextPosition: gl.createBuffer()!,
+      velocity: gl.createBuffer()!,
+    };
 
-    // --- Buffers ---
+    // -----------
 
-    const positionBuffer1 = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition);
+    gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.STREAM_DRAW);
 
-    const positionBuffer2 = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition);
+    gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.STREAM_DRAW);
 
-    const velocityBuffer = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, velocities, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
+    gl.bufferData(gl.ARRAY_BUFFER, data.velocities, gl.STATIC_DRAW);
 
-    // --- Vertex Array Objects ---
+    const vertexArrayObjects = {
+      update1: gl.createVertexArray(),
+      update2: gl.createVertexArray(),
+      render1: gl.createVertexArray(),
+      render2: gl.createVertexArray(),
+    };
 
     // update position VAO 1
-    const updateVA1 = gl.createVertexArray();
-    gl.bindVertexArray(updateVA1);
+    gl.bindVertexArray(vertexArrayObjects.update1);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition); // 1
     gl.enableVertexAttribArray(locations.update.aOldPosition);
     gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
     gl.enableVertexAttribArray(locations.update.aVelocity);
     gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
 
     // update position VAO 2
-    const updateVA2 = gl.createVertexArray();
-    gl.bindVertexArray(updateVA2);
+    gl.bindVertexArray(vertexArrayObjects.update2);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition); // 2
     gl.enableVertexAttribArray(locations.update.aOldPosition);
     gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, velocityBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
     gl.enableVertexAttribArray(locations.update.aVelocity);
     gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
 
     // draw VAO 1
-    const drawVA1 = gl.createVertexArray();
-    gl.bindVertexArray(drawVA1);
+    gl.bindVertexArray(vertexArrayObjects.render1);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer1); // 1
-    gl.enableVertexAttribArray(locations.draw.position);
-    gl.vertexAttribPointer(locations.draw.position, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition); // 1
+    gl.enableVertexAttribArray(locations.render.aCanvasVertices);
+    gl.vertexAttribPointer(locations.render.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
     // draw VAO 2
-    const drawVA2 = gl.createVertexArray();
-    gl.bindVertexArray(drawVA2);
+    gl.bindVertexArray(vertexArrayObjects.render2);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer2); // 2
-    gl.enableVertexAttribArray(locations.draw.position);
-    gl.vertexAttribPointer(locations.draw.position, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition); // 2
+    gl.enableVertexAttribArray(locations.render.aCanvasVertices);
+    gl.vertexAttribPointer(locations.render.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
-    // --- Transform Feedback ---
+    const transformFeedbacks = {
+      one: gl.createTransformFeedback(),
+      two: gl.createTransformFeedback(),
+    };
 
-    const tf1 = gl.createTransformFeedback();
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1); // 1
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positionBuffer1); // 1
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.one); // 1
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.firstPosition); // 1
 
-    const tf2 = gl.createTransformFeedback();
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2); // 2
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positionBuffer2); // 2
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.two); // 2
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.nextPosition); // 2
 
     // --- Unbind leftovers ---
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
 
-    // --- Swaps ---
+    return { locations, vertexArrayObjects, transformFeedbacks };
+  }
+
+  private main(gl: WebGL2RenderingContext) {
+    const programs = this.createPrograms(gl);
+
+    const { locations, vertexArrayObjects, transformFeedbacks } = this.createState(gl, programs);
+
+    this.createTexture(gl);
 
     let current = {
-      updateVA: updateVA1, // Read from position1.
-      tf: tf2, // Write to position2.
-      drawVA: drawVA2, // Draw with position2.
+      updateVA: vertexArrayObjects.update1, // Read from position1.
+      tf: transformFeedbacks.two, // Write to position2.
+      drawVA: vertexArrayObjects.render2, // Draw with position2.
     };
 
     let next = {
-      updateVA: updateVA2, // Read from position2.
-      tf: tf1, // Write to position 1.
-      drawVA: drawVA1, // Draw with position 1.
+      updateVA: vertexArrayObjects.update2, // Read from position2.
+      tf: transformFeedbacks.one, // Write to position 1.
+      drawVA: vertexArrayObjects.render1, // Draw with position 1.
     };
 
-    // --- Loop ---
+    Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     const updateLoop = (deltaTime: number) => {
       // Compute the new positions.
-      gl.useProgram(updateProgram);
+      gl.useProgram(programs.update);
       gl.bindVertexArray(current.updateVA);
       gl.uniform1f(locations.update.uDeltaTime, deltaTime);
 
@@ -182,9 +213,9 @@ export class Particles {
       gl.disable(gl.RASTERIZER_DISCARD);
     };
 
-    const drawLoop = () => {
+    const renderLoop = () => {
       // Draw the particles.
-      gl.useProgram(drawProgram);
+      gl.useProgram(programs.render);
       gl.bindVertexArray(current.drawVA);
       gl.drawArrays(gl.POINTS, 0, this.particlesCount);
     };
@@ -192,15 +223,14 @@ export class Particles {
     let timeThen: number = 0;
     const mainLoop = (timeNow: number) => {
       timeNow *= 0.001;
-      const deltaTime: number = timeNow - timeThen;
+      const deltaTime = timeNow - timeThen;
       timeThen = timeNow;
 
-      Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+      Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
       updateLoop(deltaTime);
-
-      drawLoop();
+      renderLoop();
 
       // --- Swap ---
       const temp = current;
@@ -210,6 +240,6 @@ export class Particles {
       requestAnimationFrame(mainLoop);
     };
 
-    mainLoop(0);
-  };
+    requestAnimationFrame(mainLoop);
+  }
 }

@@ -10,9 +10,9 @@ export class ParticlesTexture {
   private readonly height = 20;
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  readonly setup = () => {
+  setup() {
     if (this.initialized) throw new Error("Already initialized");
     this.initialized = true;
 
@@ -27,13 +27,13 @@ export class ParticlesTexture {
     const simulationProgram = Utilities.WebGL.Setup.linkProgram(gl, simulationVS, simulationFS);
     const renderProgram = Utilities.WebGL.Setup.linkProgram(gl, renderVS, renderFS);
 
-    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+    Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     this.main(gl, simulationProgram, renderProgram);
-  };
+  }
 
-  private readonly createTextureData = (count: number) => {
+  private createTextureData(count: number) {
     const textureData: number[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -47,20 +47,16 @@ export class ParticlesTexture {
     }
 
     return textureData;
-  };
+  }
 
-  private readonly disableTextureFiltering = (gl: WebGL2RenderingContext) => {
+  private disableTextureFiltering(gl: WebGL2RenderingContext) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  };
+  }
 
-  private readonly main = (
-    gl: WebGL2RenderingContext,
-    simulationProgram: WebGLProgram,
-    renderProgram: WebGLProgram,
-  ) => {
+  private main(gl: WebGL2RenderingContext, simulationProgram: WebGLProgram, renderProgram: WebGLProgram) {
     const locations = {
       simulation: {
         aCanvasVertices: gl.getAttribLocation(simulationProgram, "a_canvasVertices"),
@@ -170,5 +166,5 @@ export class ParticlesTexture {
     };
 
     loop(0);
-  };
+  }
 }

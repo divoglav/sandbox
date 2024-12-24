@@ -1,4 +1,5 @@
 import { Utilities } from "../../../utilities";
+
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
@@ -6,7 +7,8 @@ export class Minimal {
   private initialized = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
-  readonly setup = () => {
+
+  setup() {
     if (this.initialized) throw new Error("Already initialized");
     this.initialized = true;
 
@@ -18,13 +20,13 @@ export class Minimal {
 
     const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
 
-    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(this.canvas);
+    Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     this.main(gl, program);
-  };
+  }
 
-  private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
+  private main(gl: WebGL2RenderingContext, program: WebGLProgram) {
     const locations = {
       aCanvasVertices: gl.getAttribLocation(program, "a_canvasVertices"),
     };
@@ -48,5 +50,5 @@ export class Minimal {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-  };
+  }
 }

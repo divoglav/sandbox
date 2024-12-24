@@ -1,11 +1,12 @@
 import { Utilities } from "../../../utilities";
+
 import vertex from "./vertex.glsl";
 import fragment from "./fragment.glsl";
 
 export class TextureCustom {
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  readonly setup = () => {
+  setup() {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
@@ -13,15 +14,15 @@ export class TextureCustom {
     const fragmentShader = Utilities.WebGL.Setup.compileShader(gl, "fragment", fragment);
     const program = Utilities.WebGL.Setup.linkProgram(gl, vertexShader, fragmentShader);
 
-    Utilities.WebGL.Canvas.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
+    Utilities.WebGL.Canvas.resizeToDisplaySize(gl.canvas as HTMLCanvasElement);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     this.main(gl, program);
-  };
+  }
 
-  private readonly main = (gl: WebGL2RenderingContext, program: WebGLProgram) => {
+  private main(gl: WebGL2RenderingContext, program: WebGLProgram) {
     const aPositionLocation = gl.getAttribLocation(program, "a_position");
     const aTextureCoordinatesLocation = gl.getAttribLocation(program, "a_textureCoordinates");
     const uResolutionLocation = gl.getUniformLocation(program, "u_resolution");
@@ -74,5 +75,5 @@ export class TextureCustom {
     gl.uniform1i(uImageLocation, 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-  };
+  }
 }
