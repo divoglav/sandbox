@@ -1,12 +1,12 @@
-import { Utilities } from "../../utilities";
+import { Utilities } from "../../../utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class Particles {
-  private readonly particlesCount = 10000;
+export class TenThousand {
+  private readonly particlesCount = 10_000;
   private readonly brightness = 3;
   private readonly speed = 0.03;
   private readonly minSize = 1.5;
@@ -17,7 +17,7 @@ export class Particles {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  setup() {
+  init() {
     if (this.initialized) throw "Already initialized";
     this.initialized = true;
 
@@ -28,7 +28,7 @@ export class Particles {
     this.image.onload = () => this.main(gl);
   }
 
-  private createPrograms(gl: WebGL2RenderingContext) {
+  private setupPrograms(gl: WebGL2RenderingContext) {
     const updateVS = Utilities.WebGL.Setup.compileShader(gl, "vertex", updateVertex);
     const updateFS = Utilities.WebGL.Setup.compileShader(gl, "fragment", updateFragment);
     const renderVS = Utilities.WebGL.Setup.compileShader(gl, "vertex", renderVertex);
@@ -63,7 +63,7 @@ export class Particles {
     return velocities;
   }
 
-  private createTexture(gl: WebGL2RenderingContext) {
+  private setupTexture(gl: WebGL2RenderingContext) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
@@ -90,7 +90,7 @@ export class Particles {
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, globalStaticData);
   }
 
-  private createState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
+  private setupState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const locations = {
       update: {
         aOldPosition: gl.getAttribLocation(programs.update, "a_oldPosition"),
@@ -188,11 +188,11 @@ export class Particles {
   }
 
   private main(gl: WebGL2RenderingContext) {
-    const programs = this.createPrograms(gl);
+    const programs = this.setupPrograms(gl);
 
-    const { locations, vertexArrayObjects, transformFeedbacks } = this.createState(gl, programs);
+    const { locations, vertexArrayObjects, transformFeedbacks } = this.setupState(gl, programs);
 
-    this.createTexture(gl);
+    this.setupTexture(gl);
 
     let current = {
       updateVAO: vertexArrayObjects.updateFirst,

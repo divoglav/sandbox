@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { Particles } from "../../draws/particles/particles";
+import { TenThousand } from "../../draws/complete/tenthousand/tenthousand";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Particles(canvasRef).setup();
+    new TenThousand(canvasRef).init();
   });
 
   return (
