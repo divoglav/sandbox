@@ -6,7 +6,7 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class ParticlesFeedback {
-  private readonly particlesCount = 1000;
+  private readonly particlesCount = 10000;
 
   private initialized = false;
   private image = new Image();
@@ -59,6 +59,14 @@ export class ParticlesFeedback {
     return velocities;
   }
 
+  private createTexture(gl: WebGL2RenderingContext) {
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
+    Utilities.WebGL.Texture.applyClampAndNearest(gl);
+  }
+
   private createState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const locations = {
       update: {
@@ -68,6 +76,7 @@ export class ParticlesFeedback {
       },
       render: {
         aNewPosition: gl.getAttribLocation(programs.render, "a_newPosition"),
+        uTextureIndex: gl.getUniformLocation(programs.render, "u_textureIndex"),
       },
     };
 
@@ -158,6 +167,8 @@ export class ParticlesFeedback {
 
     const { locations, vertexArrayObjects, transformFeedbacks } = this.createState(gl, programs);
 
+    this.createTexture(gl);
+
     let current = {
       updateVAO: vertexArrayObjects.updateFirst,
       renderVAO: vertexArrayObjects.renderNext,
@@ -174,10 +185,12 @@ export class ParticlesFeedback {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     const updateLoop = (deltaTime: number) => {
+      // Compute the new positions.
       gl.useProgram(programs.update);
       gl.bindVertexArray(current.updateVAO);
       gl.uniform1f(locations.update.uDeltaTime, deltaTime);
 
+      // Transform feedback process. On and off.
       gl.enable(gl.RASTERIZER_DISCARD);
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.TF);
       gl.beginTransformFeedback(gl.POINTS);
@@ -188,6 +201,7 @@ export class ParticlesFeedback {
     };
 
     const renderLoop = () => {
+      // Draw the particles.
       gl.useProgram(programs.render);
       gl.bindVertexArray(current.renderVAO);
       gl.drawArrays(gl.POINTS, 0, this.particlesCount);
@@ -199,9 +213,13 @@ export class ParticlesFeedback {
       const deltaTime = timeNow - timeThen;
       timeThen = timeNow;
 
+      Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
       updateLoop(deltaTime);
       renderLoop();
 
+      // --- Swap ---
       const temp = current;
       current = swap;
       swap = temp;
