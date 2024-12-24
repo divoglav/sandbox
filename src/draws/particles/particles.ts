@@ -1,11 +1,11 @@
-import { Utilities } from "../../../utilities";
+import { Utilities } from "../../utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class ParticlesFeedback {
+export class Particles {
   private readonly particlesCount = 10000;
 
   private initialized = false;
@@ -185,12 +185,10 @@ export class ParticlesFeedback {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     const updateLoop = (deltaTime: number) => {
-      // Compute the new positions.
       gl.useProgram(programs.update);
       gl.bindVertexArray(current.updateVAO);
       gl.uniform1f(locations.update.uDeltaTime, deltaTime);
 
-      // Transform feedback process. On and off.
       gl.enable(gl.RASTERIZER_DISCARD);
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.TF);
       gl.beginTransformFeedback(gl.POINTS);
@@ -201,7 +199,6 @@ export class ParticlesFeedback {
     };
 
     const renderLoop = () => {
-      // Draw the particles.
       gl.useProgram(programs.render);
       gl.bindVertexArray(current.renderVAO);
       gl.drawArrays(gl.POINTS, 0, this.particlesCount);
@@ -212,9 +209,6 @@ export class ParticlesFeedback {
       timeNow *= 0.001;
       const deltaTime = timeNow - timeThen;
       timeThen = timeNow;
-
-      Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
       updateLoop(deltaTime);
       renderLoop();

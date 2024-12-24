@@ -11,8 +11,12 @@ void main() {
 
   vec2 clipSpace = a_newPosition * 2.0 - 1.0;
 
+  const float minSize = 1.5;
+  float size = (texelColor.x + texelColor.y + texelColor.z);
+  const float maxSizeScalar = 3.0;
+
   gl_Position = vec4(clipSpace, 0.0, 1.0);
-  gl_PointSize = (texelColor.x + texelColor.y + texelColor.z) * 5.0;
+  gl_PointSize = minSize + size * maxSizeScalar;
 
   v_texelColor = texelColor;
 }

@@ -28,7 +28,7 @@ vec2 warp(vec2 coordinates) {
 }
 
 void main() {
-  const float speed = 0.05;
+  const float speed = 0.03;
 
   vec2 velocity = a_velocity * u_deltaTime * speed;
 
