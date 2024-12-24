@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { Particles } from "../../draws/archive/particles/particles";
+import { ParticlesFeedback } from "../../draws/archive/particles-feedback/particles-feedback";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Particles(canvasRef).setup();
+    new ParticlesFeedback(canvasRef).setup();
   });
 
   return (
