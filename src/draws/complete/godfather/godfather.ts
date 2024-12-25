@@ -9,7 +9,7 @@ export class Godfather {
   private readonly particlesCount = 6_000;
   private readonly minColor = 0.4;
   private readonly minPointSize = 3.0;
-  private readonly colorPointSizeScalar = 0.6;
+  private readonly colorPointSizeScalar = 0.7;
   private readonly colorSlowScalar = 6.0;
   private readonly minGravity = 0.001;
   private readonly minLimitGravity = 0.1;
@@ -238,6 +238,7 @@ export class Godfather {
 
     Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0.08, 0.08, 0.08, 1.0);
 
     const updateLoop = (deltaTime: number) => {
       gl.useProgram(programs.update);
@@ -256,6 +257,7 @@ export class Godfather {
     const renderLoop = () => {
       gl.useProgram(programs.render);
       gl.bindVertexArray(current.renderVAO);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.POINTS, 0, this.particlesCount);
     };
 
