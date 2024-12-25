@@ -208,6 +208,7 @@ export class TenThousand {
 
     Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0.08, 0.08, 0.08, 1.0);
 
     const updateLoop = (deltaTime: number) => {
       gl.useProgram(programs.update);
@@ -226,6 +227,7 @@ export class TenThousand {
     const renderLoop = () => {
       gl.useProgram(programs.render);
       gl.bindVertexArray(current.renderVAO);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.POINTS, 0, this.particlesCount);
     };
 

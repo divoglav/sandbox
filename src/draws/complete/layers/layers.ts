@@ -10,7 +10,7 @@ export class Layers {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  setup() {
+  init() {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
@@ -27,7 +27,7 @@ export class Layers {
     this.loadImages(sources, this.images, () => this.main(gl, program));
   }
 
-  private pointerSetup(onMove: () => void) {
+  private setupPointer(onMove: () => void) {
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.canvas.addEventListener("mousemove", (ev: MouseEvent) => {
       this.pointerX = ev.clientX - canvasBounds.left;
@@ -119,6 +119,6 @@ export class Layers {
 
     render();
 
-    this.pointerSetup(render);
+    this.setupPointer(render);
   }
 }
