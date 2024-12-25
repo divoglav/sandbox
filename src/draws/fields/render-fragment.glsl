@@ -11,5 +11,6 @@ uniform GlobalStaticData {
 };
 
 void main() {
-  outColor = vec4(0.5, 0.5, 0.5, 1.0);
+  vec3 color = vec3(1.0, 1.0, 1.0) * 1.0;
+  outColor = vec4(color, 1.0);
 }

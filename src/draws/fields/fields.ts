@@ -19,7 +19,7 @@ export class Fields {
   private yPointer = 0;
   private readonly particleCount = this.xCount * this.yCount;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   init() {
     if (this.initialized) throw "Already initialized";

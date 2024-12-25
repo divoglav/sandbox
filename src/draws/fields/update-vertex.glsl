@@ -18,12 +18,12 @@ const vec2 ZERO = vec2(0.0, 0.0);
 const vec2 NEGATIVE_ONE = vec2(-1.0, -1.0);
 const vec2 POSITIVE_ONE = vec2(1.0, 1.0);
 
-const float ORIGIN_PULL_SCALAR = 1.0;
+const float ORIGIN_PULL_SCALAR = 0.8;
 
-const bool DISTANCE_BASED_REPEL = false;
-const float MAX_REPEL_EFFECT_DISTANCE = 0.1;
-const float REPEL_SCALAR_DISTANCE = 0.01;
-const float REPEL_SCALAR_FIXED = 0.01;
+// const float MAX_REPEL_EFFECT_DISTANCE = 0.03;
+const float MAX_REPEL_EFFECT_DISTANCE = 0.05;
+const float REPEL_SCALAR = 0.2;
+const float REPEL_NEAREST_SCALAR = 5.0;
 
 vec2 originPull(vec2 position, vec2 origin) {
   return -1.0 * ORIGIN_PULL_SCALAR * (position - origin);
@@ -38,20 +38,16 @@ vec2 repel(vec2 position, vec2 pointer) {
   vec2 direction = normalize(position - pointer);
 
   float inverse = 1.0 / distanceToPointer;
+  float repelByDistance = clamp(inverse, 1.0, 1.0 + REPEL_NEAREST_SCALAR);
 
-  if(DISTANCE_BASED_REPEL)
-    return REPEL_SCALAR_DISTANCE * direction * (1.0 / distanceToPointer);
-  else 
-    return REPEL_SCALAR_FIXED * 10.0 * direction;
+  return REPEL_SCALAR * direction * repelByDistance;
 }
 
 void main() {
   vec2 velocity = ZERO;
-
   velocity += originPull(a_currentPosition, a_originalPosition);
   velocity += repel(a_currentPosition, u_pointerPosition);
-
-  velocity = u_deltaTime * clamp(NEGATIVE_ONE, velocity, POSITIVE_ONE);
+  velocity = u_deltaTime * clamp(velocity, NEGATIVE_ONE, POSITIVE_ONE);
 
   newPosition = a_currentPosition + velocity;
 }
