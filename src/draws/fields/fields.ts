@@ -6,20 +6,23 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class Fields {
-  private readonly xCount = 200;
-  private readonly yCount = 200;
-  private readonly offset = 0.008;
-  private readonly brightness = 3;
-  private readonly speed = 0.03;
-  private readonly minSize = 1.5;
-  private readonly sizeScalar = 3.0;
+  private readonly xCount = 300;
+  private readonly yCount = 300;
+  private readonly offset = 0.02;
+
+  private readonly originPullScalar: number = 0.8;
+  private readonly repelScalar: number = 0.2;
+  private readonly repelNearestScalar: number = 5;
+  private readonly maxRepelDistance: number = 0.04;
+  private readonly minPointSize: number = 0.8;
+  private readonly pointSizeByOriginDistance: number = 40;
 
   private initialized = false;
-  private xPointer = 0;
-  private yPointer = 0;
+  private xPointer = -1;
+  private yPointer = -1;
   private readonly particleCount = this.xCount * this.yCount;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -51,7 +54,13 @@ export class Fields {
     const renderFS = Utilities.WebGL.Setup.compileShader(gl, "fragment", renderFragment);
 
     return {
-      update: Utilities.WebGL.Setup.linkTransformFeedbackProgram(gl, updateVS, updateFS, ["newPosition"], "separate"),
+      update: Utilities.WebGL.Setup.linkTransformFeedbackProgram(
+        gl,
+        updateVS,
+        updateFS,
+        ["tf_newPosition", "tf_distanceFromOrigin"],
+        "separate",
+      ),
       render: Utilities.WebGL.Setup.linkProgram(gl, renderVS, renderFS),
     };
   }
@@ -61,8 +70,8 @@ export class Fields {
 
     for (let x = 0; x < this.xCount; x++) {
       for (let y = 0; y < this.yCount; y++) {
-        const xPosition = this.offset + (1 / this.xCount) * x;
-        const yPosition = this.offset + (1 / this.yCount) * y;
+        const xPosition = this.offset + ((1 - this.offset * 2) / this.xCount) * x;
+        const yPosition = this.offset + ((1 - this.offset * 2) / this.yCount) * y;
         positions.push(xPosition);
         positions.push(yPosition);
       }
@@ -78,7 +87,14 @@ export class Fields {
     gl.uniformBlockBinding(programs.update, blockIndexInUpdate, 0);
     gl.uniformBlockBinding(programs.render, blockIndexInRender, 0);
 
-    const data = [this.brightness, this.speed, this.minSize, this.sizeScalar];
+    const data = [
+      this.originPullScalar,
+      this.repelScalar,
+      this.repelNearestScalar,
+      this.maxRepelDistance,
+      this.minPointSize,
+      this.pointSizeByOriginDistance,
+    ];
 
     const uniformBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
@@ -101,6 +117,7 @@ export class Fields {
       },
       render: {
         aNewPosition: gl.getAttribLocation(programs.render, "a_newPosition"),
+        aDistanceFromOrigin: gl.getAttribLocation(programs.render, "a_distanceFromOrigin"),
         uTextureIndex: gl.getUniformLocation(programs.render, "u_textureIndex"),
       },
     };
@@ -115,6 +132,8 @@ export class Fields {
       firstPosition: gl.createBuffer()!,
       nextPosition: gl.createBuffer()!,
       originalPosition: gl.createBuffer()!,
+      firstDistanceFromOrigin: gl.createBuffer()!,
+      nextDistanceFromOrigin: gl.createBuffer()!,
     };
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition);
@@ -125,6 +144,12 @@ export class Fields {
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.originalPosition);
     gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.STREAM_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstDistanceFromOrigin);
+    gl.bufferData(gl.ARRAY_BUFFER, this.particleCount * Float32Array.BYTES_PER_ELEMENT, gl.STREAM_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextDistanceFromOrigin);
+    gl.bufferData(gl.ARRAY_BUFFER, this.particleCount * Float32Array.BYTES_PER_ELEMENT, gl.STREAM_DRAW);
 
     const vertexArrayObjects = {
       updateFirst: gl.createVertexArray(),
@@ -162,6 +187,10 @@ export class Fields {
     gl.enableVertexAttribArray(locations.render.aNewPosition);
     gl.vertexAttribPointer(locations.render.aNewPosition, 2, gl.FLOAT, false, 0, 0);
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstDistanceFromOrigin);
+    gl.enableVertexAttribArray(locations.render.aDistanceFromOrigin);
+    gl.vertexAttribPointer(locations.render.aDistanceFromOrigin, 1, gl.FLOAT, false, 0, 0);
+
     // render VAO next data
     gl.bindVertexArray(vertexArrayObjects.renderNext);
 
@@ -169,16 +198,22 @@ export class Fields {
     gl.enableVertexAttribArray(locations.render.aNewPosition);
     gl.vertexAttribPointer(locations.render.aNewPosition, 2, gl.FLOAT, false, 0, 0);
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextDistanceFromOrigin);
+    gl.enableVertexAttribArray(locations.render.aDistanceFromOrigin);
+    gl.vertexAttribPointer(locations.render.aDistanceFromOrigin, 1, gl.FLOAT, false, 0, 0);
+
     const transformFeedbacks = {
-      firstPosition: gl.createTransformFeedback(),
-      nextPosition: gl.createTransformFeedback(),
+      first: gl.createTransformFeedback(),
+      next: gl.createTransformFeedback(),
     };
 
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.firstPosition);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.first);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.firstPosition);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, buffers.firstDistanceFromOrigin);
 
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.nextPosition);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.next);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.nextPosition);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, buffers.nextDistanceFromOrigin);
 
     // --- Unbind leftovers ---
 
@@ -196,13 +231,13 @@ export class Fields {
     let current = {
       updateVAO: vertexArrayObjects.updateFirst,
       renderVAO: vertexArrayObjects.renderNext,
-      TF: transformFeedbacks.nextPosition,
+      TF: transformFeedbacks.next,
     };
 
     let swap = {
       updateVAO: vertexArrayObjects.updateNext,
       renderVAO: vertexArrayObjects.renderFirst,
-      TF: transformFeedbacks.firstPosition,
+      TF: transformFeedbacks.first,
     };
 
     Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
@@ -241,6 +276,8 @@ export class Fields {
       timeNow *= 0.001;
       const deltaTime = timeNow - timeThen;
       timeThen = timeNow;
+
+      console.log(`fps: ${1 / deltaTime}`);
 
       updateLoop(deltaTime);
       renderLoop();
