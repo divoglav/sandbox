@@ -6,8 +6,8 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class Fields {
-  private readonly xCount = 60;
-  private readonly yCount = 60;
+  private readonly xCount = 200;
+  private readonly yCount = 200;
   private readonly offset = 0.008;
   private readonly brightness = 3;
   private readonly speed = 0.03;
