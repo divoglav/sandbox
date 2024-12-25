@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { TenThousand } from "../../draws/complete/tenthousand/tenthousand";
+import { Godfather } from "../../draws/complete/godfather/godfather";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new TenThousand(canvasRef).init();
+    new Godfather(canvasRef).init();
   });
 
   return (

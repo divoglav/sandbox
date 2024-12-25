@@ -5,17 +5,20 @@ import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class TenThousand {
-  private readonly particlesCount = 10_000;
-  private readonly brightness = 3;
-  private readonly speed = 0.03;
-  private readonly minSize = 1.5;
-  private readonly sizeScalar = 3.0;
+export class Godfather {
+  private readonly particlesCount = 6_000;
+  private readonly minColor = 0.4;
+  private readonly minPointSize = 3.0;
+  private readonly colorPointSizeScalar = 0.6;
+  private readonly colorSlowScalar = 6.0;
+  private readonly minGravity = 0.001;
+  private readonly minLimitGravity = 0.1;
+  private readonly maxLimitGravity = 0.8;
 
   private initialized = false;
   private image = new Image();
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -24,7 +27,7 @@ export class TenThousand {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    this.image.src = "assets/tenthousand.png";
+    this.image.src = "assets/godfather.png";
     this.image.onload = () => this.main(gl);
   }
 
@@ -35,7 +38,13 @@ export class TenThousand {
     const renderFS = Utilities.WebGL.Setup.compileShader(gl, "fragment", renderFragment);
 
     return {
-      update: Utilities.WebGL.Setup.linkTransformFeedbackProgram(gl, updateVS, updateFS, ["newPosition"], "separate"),
+      update: Utilities.WebGL.Setup.linkTransformFeedbackProgram(
+        gl,
+        updateVS,
+        updateFS,
+        ["newPosition", "texelColor"],
+        "separate",
+      ),
       render: Utilities.WebGL.Setup.linkProgram(gl, renderVS, renderFS),
     };
   }
@@ -44,23 +53,17 @@ export class TenThousand {
     const positions: number[] = [];
     for (let i = 0; i < this.particlesCount; i++) {
       positions.push(Utilities.Random.range(0, 1));
-      positions.push(Utilities.Random.range(0, 1));
+      positions.push(Utilities.Random.range(1, 10));
     }
     return positions;
   }
 
-  private generateVelocityData() {
-    const velocities: number[] = [];
+  private generateWeightData() {
+    const weights: number[] = [];
     for (let i = 0; i < this.particlesCount; i++) {
-      const angle = Utilities.Random.rangeInt(0, 360);
-
-      const sin = Utilities.TrigCache.sin(angle);
-      const cos = Utilities.TrigCache.cos(angle);
-
-      velocities.push(cos);
-      velocities.push(sin);
+      weights.push(Utilities.Random.range(0, 1));
     }
-    return velocities;
+    return weights;
   }
 
   private setupTexture(gl: WebGL2RenderingContext) {
@@ -78,7 +81,15 @@ export class TenThousand {
     gl.uniformBlockBinding(programs.update, blockIndexInUpdate, 0);
     gl.uniformBlockBinding(programs.render, blockIndexInRender, 0);
 
-    const data = [this.brightness, this.speed, this.minSize, this.sizeScalar];
+    const data = [
+      this.minColor,
+      this.minPointSize,
+      this.colorPointSizeScalar,
+      this.colorSlowScalar,
+      this.minGravity,
+      this.minLimitGravity,
+      this.maxLimitGravity,
+    ];
 
     const uniformBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
@@ -93,13 +104,14 @@ export class TenThousand {
   private setupState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const locations = {
       update: {
-        aOldPosition: gl.getAttribLocation(programs.update, "a_oldPosition"),
-        aVelocity: gl.getAttribLocation(programs.update, "a_velocity"),
+        aCurrentPosition: gl.getAttribLocation(programs.update, "a_currentPosition"),
+        aWeight: gl.getAttribLocation(programs.update, "a_weight"),
+        uTextureIndex: gl.getUniformLocation(programs.update, "u_textureIndex"),
         uDeltaTime: gl.getUniformLocation(programs.update, "u_deltaTime"),
       },
       render: {
         aNewPosition: gl.getAttribLocation(programs.render, "a_newPosition"),
-        uTextureIndex: gl.getUniformLocation(programs.render, "u_textureIndex"),
+        aTexelColor: gl.getAttribLocation(programs.render, "a_texelColor"),
       },
     };
 
@@ -107,13 +119,15 @@ export class TenThousand {
 
     const data = {
       positions: new Float32Array(this.generatePositionData()),
-      velocities: new Float32Array(this.generateVelocityData()),
+      weights: new Float32Array(this.generateWeightData()),
     };
 
     const buffers = {
       firstPosition: gl.createBuffer()!,
       nextPosition: gl.createBuffer()!,
-      velocity: gl.createBuffer()!,
+      firstTexelColor: gl.createBuffer()!,
+      nextTexelColor: gl.createBuffer()!,
+      weight: gl.createBuffer()!,
     };
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition);
@@ -122,8 +136,14 @@ export class TenThousand {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition);
     gl.bufferData(gl.ARRAY_BUFFER, data.positions, gl.STREAM_DRAW);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
-    gl.bufferData(gl.ARRAY_BUFFER, data.velocities, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstTexelColor);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.particlesCount * 3).fill(0), gl.STREAM_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextTexelColor);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.particlesCount * 3).fill(0), gl.STREAM_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.weight);
+    gl.bufferData(gl.ARRAY_BUFFER, data.weights, gl.STREAM_DRAW);
 
     const vertexArrayObjects = {
       updateFirst: gl.createVertexArray(),
@@ -132,52 +152,62 @@ export class TenThousand {
       renderNext: gl.createVertexArray(),
     };
 
-    // update VAO first data
+    // update VAO first
     gl.bindVertexArray(vertexArrayObjects.updateFirst);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition);
-    gl.enableVertexAttribArray(locations.update.aOldPosition);
-    gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aCurrentPosition);
+    gl.vertexAttribPointer(locations.update.aCurrentPosition, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
-    gl.enableVertexAttribArray(locations.update.aVelocity);
-    gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.weight);
+    gl.enableVertexAttribArray(locations.update.aWeight);
+    gl.vertexAttribPointer(locations.update.aWeight, 1, gl.FLOAT, false, 0, 0);
 
-    // update VAO next data
+    // update VAO next
     gl.bindVertexArray(vertexArrayObjects.updateNext);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition);
-    gl.enableVertexAttribArray(locations.update.aOldPosition);
-    gl.vertexAttribPointer(locations.update.aOldPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(locations.update.aCurrentPosition);
+    gl.vertexAttribPointer(locations.update.aCurrentPosition, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.velocity);
-    gl.enableVertexAttribArray(locations.update.aVelocity);
-    gl.vertexAttribPointer(locations.update.aVelocity, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.weight);
+    gl.enableVertexAttribArray(locations.update.aWeight);
+    gl.vertexAttribPointer(locations.update.aWeight, 1, gl.FLOAT, false, 0, 0);
 
-    // render VAO first data
+    // render VAO first
     gl.bindVertexArray(vertexArrayObjects.renderFirst);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstPosition);
     gl.enableVertexAttribArray(locations.render.aNewPosition);
     gl.vertexAttribPointer(locations.render.aNewPosition, 2, gl.FLOAT, false, 0, 0);
 
-    // render VAO next data
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.firstTexelColor);
+    gl.enableVertexAttribArray(locations.render.aTexelColor);
+    gl.vertexAttribPointer(locations.render.aTexelColor, 3, gl.FLOAT, false, 0, 0);
+
+    // render VAO next
     gl.bindVertexArray(vertexArrayObjects.renderNext);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextPosition);
     gl.enableVertexAttribArray(locations.render.aNewPosition);
     gl.vertexAttribPointer(locations.render.aNewPosition, 2, gl.FLOAT, false, 0, 0);
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.nextTexelColor);
+    gl.enableVertexAttribArray(locations.render.aTexelColor);
+    gl.vertexAttribPointer(locations.render.aTexelColor, 3, gl.FLOAT, false, 0, 0);
+
     const transformFeedbacks = {
-      firstPosition: gl.createTransformFeedback(),
-      nextPosition: gl.createTransformFeedback(),
+      first: gl.createTransformFeedback(),
+      next: gl.createTransformFeedback(),
     };
 
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.firstPosition);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.first);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.firstPosition);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, buffers.firstTexelColor);
 
-    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.nextPosition);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedbacks.next);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers.nextPosition);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, buffers.nextTexelColor);
 
     // --- Unbind leftovers ---
 
@@ -197,13 +227,13 @@ export class TenThousand {
     let current = {
       updateVAO: vertexArrayObjects.updateFirst,
       renderVAO: vertexArrayObjects.renderNext,
-      TF: transformFeedbacks.nextPosition,
+      TF: transformFeedbacks.next,
     };
 
     let swap = {
       updateVAO: vertexArrayObjects.updateNext,
       renderVAO: vertexArrayObjects.renderFirst,
-      TF: transformFeedbacks.firstPosition,
+      TF: transformFeedbacks.first,
     };
 
     Utilities.WebGL.Canvas.resizeToDisplaySize(this.canvas);
