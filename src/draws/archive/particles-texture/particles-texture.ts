@@ -10,7 +10,7 @@ export class ParticlesTexture {
   private readonly height = 20;
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   setup() {
     if (this.initialized) throw new Error("Already initialized");
@@ -114,6 +114,8 @@ export class ParticlesTexture {
 
     this.disableTextureFiltering(gl);
 
+    const fb = gl.createFramebuffer();
+
     // --- Loop ---
 
     let timeThen: number = 0;
@@ -121,9 +123,10 @@ export class ParticlesTexture {
       timeNow *= 0.001;
       const deltaTime: number = timeNow - timeThen;
       timeThen = timeNow;
+
       // --- Simulation ---
 
-      gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
       gl.viewport(0, 0, this.width, this.height);
 
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nextTexture, 0);
