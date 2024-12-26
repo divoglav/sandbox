@@ -1,11 +1,12 @@
 import { onMount } from "solid-js";
-import { Fields } from "../../draws/fields/fields";
+import { Godfather } from "../../draws/complete/godfather/godfather";
+import { Regeneration } from "../../draws/complete/regeneration/regeneration";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new Fields(canvasRef).init();
+    new Regeneration(canvasRef).init();
   });
 
   return (

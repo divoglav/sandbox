@@ -5,6 +5,7 @@ in float a_distanceFromOrigin;
 
 uniform GlobalStaticData {
   float u_originPullScalar;
+  float u_toggleOriginPullScalar;
   float u_repelScalar;
   float u_repelNearestScalar;
   float u_maxRepelDistance;

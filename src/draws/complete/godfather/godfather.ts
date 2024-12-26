@@ -13,7 +13,7 @@ export class Godfather {
   private readonly colorSlowScalar = 6.0;
   private readonly minGravity = 0.001;
   private readonly minLimitGravity = 0.1;
-  private readonly maxLimitGravity = 0.8;
+  private readonly maxLimitGravity = 0.6;
 
   private initialized = false;
   private image = new Image();

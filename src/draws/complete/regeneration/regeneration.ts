@@ -1,28 +1,30 @@
-import { Utilities } from "../../utilities";
+import { Utilities } from "../../../utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class Fields {
+export class Regeneration {
   private readonly xCount = 300;
   private readonly yCount = 300;
   private readonly offset = 0.02;
 
-  private readonly originPullScalar: number = 0.8;
-  private readonly repelScalar: number = 0.2;
-  private readonly repelNearestScalar: number = 5;
-  private readonly maxRepelDistance: number = 0.04;
-  private readonly minPointSize: number = 0.8;
-  private readonly pointSizeByOriginDistance: number = 40;
+  private readonly originPullScalar = 0.2;
+  private readonly toggleOriginPullScalar = 2.0;
+  private readonly repelScalar = 0.2;
+  private readonly repelNearestScalar = 5;
+  private readonly maxRepelDistance = 0.04;
+  private readonly minPointSize = 0.8;
+  private readonly pointSizeByOriginDistance = 24;
 
   private initialized = false;
-  private xPointer = -1;
-  private yPointer = -1;
+  private xPointer = 100;
+  private yPointer = 100;
+  private isPointerDown = false;
   private readonly particleCount = this.xCount * this.yCount;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -38,12 +40,23 @@ export class Fields {
 
   private setupPointer() {
     const canvasBounds = this.canvas.getBoundingClientRect();
-    this.canvas.addEventListener("mousemove", (ev: MouseEvent) => {
+    this.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
       this.xPointer = ev.clientX - canvasBounds.left;
       this.yPointer = ev.clientY - canvasBounds.top;
+
+      this.xPointer = this.xPointer / this.canvas.width;
+      this.yPointer = (this.canvas.height - this.yPointer) / this.canvas.height;
     });
-    this.canvas.addEventListener("pointerdown", () => {
-      location.reload();
+    window.addEventListener("pointerdown", () => {
+      this.isPointerDown = true;
+    });
+
+    window.addEventListener("pointerup", () => {
+      this.isPointerDown = false;
+    });
+
+    window.addEventListener("blur", () => {
+      this.isPointerDown = false;
     });
   }
 
@@ -89,6 +102,7 @@ export class Fields {
 
     const data = [
       this.originPullScalar,
+      this.toggleOriginPullScalar,
       this.repelScalar,
       this.repelNearestScalar,
       this.maxRepelDistance,
@@ -113,6 +127,7 @@ export class Fields {
         aOriginalPosition: gl.getAttribLocation(programs.update, "a_originalPosition"),
         aVelocity: gl.getAttribLocation(programs.update, "a_velocity"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
+        uPointerDown: gl.getUniformLocation(programs.update, "u_pointerDown"),
         uDeltaTime: gl.getUniformLocation(programs.update, "u_deltaTime"),
       },
       render: {
@@ -248,12 +263,8 @@ export class Fields {
       gl.useProgram(programs.update);
       gl.bindVertexArray(current.updateVAO);
       gl.uniform1f(locations.update.uDeltaTime, deltaTime);
-      // TODO: function
-      gl.uniform2f(
-        locations.update.uPointerPosition,
-        this.xPointer / this.canvas.width,
-        (this.canvas.height - this.yPointer) / this.canvas.height,
-      );
+      gl.uniform1i(locations.update.uPointerDown, this.isPointerDown ? 1 : 0);
+      gl.uniform2f(locations.update.uPointerPosition, this.xPointer, this.yPointer);
 
       gl.enable(gl.RASTERIZER_DISCARD);
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.TF);
@@ -277,7 +288,7 @@ export class Fields {
       const deltaTime = timeNow - timeThen;
       timeThen = timeNow;
 
-      console.log(`fps: ${1 / deltaTime}`);
+      //console.log(`fps: ${1 / deltaTime}`);
 
       updateLoop(deltaTime);
       renderLoop();
