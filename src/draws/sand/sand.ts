@@ -6,8 +6,8 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class Sand {
-  private readonly xCount = 15;
-  private readonly yCount = 15;
+  private readonly xCount = 10;
+  private readonly yCount = 10;
 
   private initialized = false;
   //private xPointer = 100;
@@ -17,7 +17,7 @@ export class Sand {
   //private readonly xTexelSize = 1 / this.xCount;
   //private readonly yTexelSize = 1 / this.yCount;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -70,14 +70,22 @@ export class Sand {
 
     for (let i = 0; i < this.totalCells; i++) {
       const isUpdated = 0;
-      const type = i === this.totalCells - 20 ? 1 : 0;
+      const type = 0;
       const time = 0;
-      //const isLeft = 0;
 
       state.push(isUpdated);
       state.push(type);
       state.push(time);
-      //state.push(isLeft);
+    }
+
+    const blockCells = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    for (let i = 0; i < blockCells.length; i++) {
+      state[blockCells[i] * 3 + 1] = 1;
+    }
+
+    const sandCells = [96, 86, 66, 52, 53];
+    for (let i = 0; i < sandCells.length; i++) {
+      state[sandCells[i] * 3 + 1] = 2;
     }
 
     return state;
@@ -210,9 +218,11 @@ export class Sand {
       textures.first = textures.next;
       textures.next = swap;
 
-      requestAnimationFrame(mainLoop);
+      //requestAnimationFrame(mainLoop);
     };
 
-    requestAnimationFrame(mainLoop);
+    mainLoop();
+    setInterval(mainLoop, 1000 / 2);
+    //requestAnimationFrame(mainLoop);
   }
 }

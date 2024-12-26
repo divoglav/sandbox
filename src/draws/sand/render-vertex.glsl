@@ -3,9 +3,9 @@
 flat out vec2 v_coordinates;
 
 // TODO: uniform block
-const float width = 15.0;
-const float height = 15.0;
-const float pointSize = 51.0;
+const float width = 10.0;
+const float height = 10.0;
+const float pointSize = 78.0;
 
 vec2 getCoordinates(float id) {
   float xIndex = mod(id, width);
