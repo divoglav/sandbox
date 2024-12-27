@@ -7,24 +7,21 @@ out vec4 outData;
 
 uniform sampler2D u_oldTextureIndex;
 
-// TODO: uniform block
-const float width = 10.0;
-const float height = 10.0;
-const float byteFloat = 1.0 / 255.0;
-const vec2 texelSize = vec2(1.0 / width, 1.0 / height);
-
-const float EMPTY = byteFloat * 0.0;
-const float BLOCK = byteFloat * 1.0;
-const float SAND  = byteFloat * 2.0;
-
-const vec2 NORTH      = vec2(0.0,           texelSize.y);
-const vec2 NORTH_EAST = vec2(texelSize.x,   texelSize.y);
-const vec2 EAST       = vec2(texelSize.x,   0);
-const vec2 SOUTH_EAST = vec2(texelSize.x,  -texelSize.y);
-const vec2 SOUTH      = vec2(0.0,          -texelSize.y);
-const vec2 SOUTH_WEST = vec2(-texelSize.x, -texelSize.y);
-const vec2 WEST       = vec2(-texelSize.x,  0);
-const vec2 NORTH_WEST = vec2(-texelSize.x,  texelSize.y);
+uniform SharedStaticData {
+  float EMPTY;
+  float BLOCK;
+  float SAND;
+};
+uniform UpdateStaticData {
+  vec2 NORTH;
+  vec2 NORTH_EAST;
+  vec2 EAST;
+  vec2 SOUTH_EAST;
+  vec2 SOUTH;
+  vec2 SOUTH_WEST;
+  vec2 WEST;
+  vec2 NORTH_WEST;
+};
 
 vec3 getNeighborData(vec2 offset) {
   return texture(u_oldTextureIndex, v_coordinates + offset).rgb;

@@ -1,4 +1,4 @@
-import { Vector2, WebGL } from "../../utilities/utilities";
+import { Vector2, Vector3, WebGL } from "../../utilities/utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
@@ -8,25 +8,42 @@ import renderFragment from "./render-fragment.glsl";
 export class Sand {
   private readonly width = 10;
   private readonly height = 10;
+  private readonly pointSize = 78;
+  private readonly brightness = 0.6;
+  private readonly colors = {
+    error: new Vector3(1.0, 0.0, 1.0),
+    empty: new Vector3(0.5, 0.5, 0.5),
+    block: new Vector3(0.1, 0.1, 0.1),
+    sand: new Vector3(0.75, 0.7, 0.5),
+  };
 
-  private readonly height = 10;
-  private readonly height = 10;
-  private readonly height = 10;
-  private readonly height = 10;
-  private readonly height = 10;
-  private readonly height = 10;
-
-  private readonly totalCells = this.width * this.height;
-  private readonly bytesPerCell = 3;
   private readonly byteFloat = 1 / 255;
   private readonly texelSize = new Vector2(1 / this.width, 1 / this.height);
 
-  private initialized = false;
-  private xPointer = 100;
-  private yPointer = 100;
-  private isPointerDown = 0;
+  private readonly types = {
+    empty: this.byteFloat * 0,
+    block: this.byteFloat * 1,
+    sand: this.byteFloat * 2,
+  };
+
+  private readonly directions = {
+    north: new Vector2(0.0, this.texelSize.y),
+    northEast: new Vector2(this.texelSize.x, this.texelSize.y),
+    east: new Vector2(this.texelSize.x, 0),
+    southEast: new Vector2(this.texelSize.x, -this.texelSize.y),
+    south: new Vector2(0.0, -this.texelSize.y),
+    southWest: new Vector2(-this.texelSize.x, -this.texelSize.y),
+    west: new Vector2(-this.texelSize.x, 0),
+    northWest: new Vector2(-this.texelSize.x, this.texelSize.y),
+  };
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
+
+  private readonly totalCells = this.width * this.height;
+  private readonly bytesPerCell = 3;
+  private readonly pointer = Vector2.zero();
+  private isPointerDown = 0;
+  private initialized = false;
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -43,11 +60,9 @@ export class Sand {
   private setupPointer() {
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
-      this.xPointer = ev.clientX - canvasBounds.left;
-      this.yPointer = ev.clientY - canvasBounds.top;
-
-      this.xPointer = this.xPointer / this.canvas.width;
-      this.yPointer = (this.canvas.height - this.yPointer) / this.canvas.height;
+      const x = ev.clientX - canvasBounds.left;
+      const y = ev.clientY - canvasBounds.top;
+      this.pointer.set(x / this.canvas.width, (this.canvas.height - y) / this.canvas.height);
     });
 
     window.addEventListener("pointerdown", () => {
@@ -111,30 +126,89 @@ export class Sand {
   }
 
   private setupUniformBlock(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
-    const blockIndexInUpdate = gl.getUniformBlockIndex(programs.update, "GlobalStaticData");
-    const blockIndexInRender = gl.getUniformBlockIndex(programs.render, "GlobalStaticData");
+    const blockIndices = {
+      shared: gl.getUniformBlockIndex(programs.update, "SharedStaticData"),
+      update: gl.getUniformBlockIndex(programs.update, "UpdateStaticData"),
+      render: gl.getUniformBlockIndex(programs.render, "RenderStaticData"),
+    };
 
-    gl.uniformBlockBinding(programs.update, blockIndexInUpdate, 0);
-    gl.uniformBlockBinding(programs.render, blockIndexInRender, 0);
+    const buffers = {
+      shared: gl.createBuffer(),
+      update: gl.createBuffer(),
+      render: gl.createBuffer(),
+    };
 
-    const data = [
-      this.originPullScalar,
-      this.toggleOriginPullScalar,
-      this.repelScalar,
-      this.repelNearestScalar,
-      this.maxRepelDistance,
-      this.minPointSize,
-      this.pointSizeByOriginDistance,
-    ];
+    const data = {
+      shared: new Float32Array([this.types.empty, this.types.block, this.types.sand, 0]),
 
-    const uniformBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, data.length * 16, gl.STATIC_DRAW);
+      update: new Float32Array([
+        this.directions.north.x,
+        this.directions.north.y,
+        this.directions.northEast.x,
+        this.directions.northEast.y,
 
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformBuffer);
+        this.directions.east.x,
+        this.directions.east.y,
+        this.directions.southEast.x,
+        this.directions.southEast.y,
 
-    const globalStaticData = new Float32Array(data);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, globalStaticData);
+        this.directions.south.x,
+        this.directions.south.y,
+        this.directions.southWest.x,
+        this.directions.southWest.y,
+
+        this.directions.west.x,
+        this.directions.west.y,
+        this.directions.northWest.x,
+        this.directions.northWest.y,
+      ]),
+
+      render: new Float32Array([
+        this.width,
+        this.height,
+        this.pointSize,
+        this.brightness,
+
+        this.colors.error.r,
+        this.colors.error.g,
+        this.colors.error.b,
+        0,
+
+        this.colors.empty.r,
+        this.colors.empty.g,
+        this.colors.empty.b,
+        0,
+
+        this.colors.block.r,
+        this.colors.block.g,
+        this.colors.block.b,
+        0,
+
+        this.colors.sand.r,
+        this.colors.sand.g,
+        this.colors.sand.b,
+        0,
+      ]),
+    };
+
+    const sharedIndex = 0;
+    gl.uniformBlockBinding(programs.update, blockIndices.shared, sharedIndex);
+    gl.uniformBlockBinding(programs.render, blockIndices.shared, sharedIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.shared);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.shared, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, sharedIndex, buffers.shared);
+
+    const updateIndex = 1;
+    gl.uniformBlockBinding(programs.update, blockIndices.update, updateIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.update);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.update, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, updateIndex, buffers.update);
+
+    const renderIndex = 2;
+    gl.uniformBlockBinding(programs.render, blockIndices.render, renderIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.render);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.render, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, renderIndex, buffers.render);
   }
 
   private setupState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
@@ -149,6 +223,8 @@ export class Sand {
         uNewTextureIndex: gl.getUniformLocation(programs.render, "u_newTextureIndex"),
       },
     };
+
+    this.setupUniformBlock(gl, programs);
 
     const data = {
       state: new Uint8Array(this.generateStateData()),
@@ -209,7 +285,7 @@ export class Sand {
 
       gl.uniform1i(locations.update.uOldTextureIndex, 0);
       gl.uniform1i(locations.update.uPointerDown, this.isPointerDown);
-      gl.uniform2f(locations.update.uPointerPosition, this.xPointer, this.yPointer);
+      gl.uniform2f(locations.update.uPointerPosition, this.pointer.x, this.pointer.y);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };

@@ -3,25 +3,25 @@ precision highp float;
 
 out vec4 outColor;
 
-uniform sampler2D u_newTextureIndex;
-
 flat in vec2 v_coordinates;
 
-// TODO: uniform block
-const float brightness = 0.6;
+uniform sampler2D u_newTextureIndex;
+uniform SharedStaticData {
+  float EMPTY;
+  float BLOCK;
+  float SAND;
+};
+uniform RenderStaticData {
+  float width;
+  float height;
+  float pointSize;
+  float brightness;
 
-const vec3 colorEmpty  = vec3(0.5, 0.5, 0.5);
-const vec3 colorBlock  = vec3(0.1, 0.1, 0.1);
-const vec3 colorSand   = vec3(0.75, 0.7, 0.5);
-const vec3 colorError  = vec3(1.0, 0.0, 1.0);
-
-// readability
-const float byteFloat = 1.0 / 255.0;
-
-const float EMPTY = byteFloat * 0.0;
-const float BLOCK = byteFloat * 1.0;
-const float SAND  = byteFloat * 2.0;
-//
+  vec3 colorError;
+  vec3 colorEmpty;
+  vec3 colorBlock;
+  vec3 colorSand;
+};
 
 void main() {
   vec3 nextData = texture(u_newTextureIndex, v_coordinates).rgb;

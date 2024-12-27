@@ -2,10 +2,17 @@
 
 flat out vec2 v_coordinates;
 
-// TODO: uniform block
-const float width = 10.0;
-const float height = 10.0;
-const float pointSize = 78.0;
+uniform RenderStaticData {
+  float width;
+  float height;
+  float pointSize;
+  float brightness;
+
+  vec3 colorError;
+  vec3 colorEmpty;
+  vec3 colorBlock;
+  vec3 colorSand;
+};
 
 vec2 getCoordinates(float id) {
   float xIndex = mod(id, width);
