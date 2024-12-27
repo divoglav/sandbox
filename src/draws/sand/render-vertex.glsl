@@ -2,7 +2,7 @@
 
 flat out vec2 v_coordinates;
 
-uniform RenderStaticData {
+layout(std140) uniform RenderStaticData {
   float width;
   float height;
   float pointSize;

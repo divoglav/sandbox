@@ -6,12 +6,12 @@ out vec4 outColor;
 flat in vec2 v_coordinates;
 
 uniform sampler2D u_newTextureIndex;
-uniform SharedStaticData {
+layout(std140) uniform SharedStaticData {
   float EMPTY;
   float BLOCK;
   float SAND;
 };
-uniform RenderStaticData {
+layout(std140) uniform RenderStaticData {
   float width;
   float height;
   float pointSize;

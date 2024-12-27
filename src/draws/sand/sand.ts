@@ -6,9 +6,16 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class Sand {
-  private readonly width = 10;
-  private readonly height = 10;
-  private readonly pointSize = 78;
+  //private readonly width = 10;
+  //private readonly height = 10;
+  private readonly width = 30;
+  private readonly height = 30;
+
+  //private readonly pointSize = 78; // for 10x10
+  private readonly pointSize = 26; // for 10x10
+
+  private readonly pointerArea = 0.02;
+
   private readonly brightness = 0.6;
   private readonly colors = {
     error: new Vector3(1.0, 0.0, 1.0),
@@ -37,13 +44,13 @@ export class Sand {
     northWest: new Vector2(-this.texelSize.x, this.texelSize.y),
   };
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
-
   private readonly totalCells = this.width * this.height;
   private readonly bytesPerCell = 3;
-  private readonly pointer = Vector2.zero();
-  private isPointerDown = 0;
+
+  private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
   private initialized = false;
+
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -62,19 +69,19 @@ export class Sand {
     this.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
       const x = ev.clientX - canvasBounds.left;
       const y = ev.clientY - canvasBounds.top;
-      this.pointer.set(x / this.canvas.width, (this.canvas.height - y) / this.canvas.height);
+      this.pointer.coordinates.set(x / this.canvas.width, (this.canvas.height - y) / this.canvas.height);
     });
 
     window.addEventListener("pointerdown", () => {
-      this.isPointerDown = 1;
+      this.pointer.isDown = 1;
     });
 
     window.addEventListener("pointerup", () => {
-      this.isPointerDown = 0;
+      this.pointer.isDown = 0;
     });
 
     window.addEventListener("blur", () => {
-      this.isPointerDown = 0;
+      this.pointer.isDown = 0;
     });
   }
 
@@ -142,6 +149,11 @@ export class Sand {
       shared: new Float32Array([this.types.empty, this.types.block, this.types.sand, 0]),
 
       update: new Float32Array([
+        this.pointerArea,
+        0,
+        0,
+        0,
+
         this.directions.north.x,
         this.directions.north.y,
         this.directions.northEast.x,
@@ -217,7 +229,7 @@ export class Sand {
         aCanvasVertices: gl.getAttribLocation(programs.update, "a_canvasVertices"),
         uOldTextureIndex: gl.getUniformLocation(programs.update, "u_oldTextureIndex"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
-        uPointerDown: gl.getUniformLocation(programs.update, "u_pointerDown"),
+        uIsPointerDown: gl.getUniformLocation(programs.update, "u_isPointerDown"),
       },
       render: {
         uNewTextureIndex: gl.getUniformLocation(programs.render, "u_newTextureIndex"),
@@ -284,8 +296,8 @@ export class Sand {
       gl.bindVertexArray(vertexArrayObjects.update);
 
       gl.uniform1i(locations.update.uOldTextureIndex, 0);
-      gl.uniform1i(locations.update.uPointerDown, this.isPointerDown);
-      gl.uniform2f(locations.update.uPointerPosition, this.pointer.x, this.pointer.y);
+      gl.uniform1i(locations.update.uIsPointerDown, this.pointer.isDown);
+      gl.uniform2f(locations.update.uPointerPosition, this.pointer.coordinates.x, this.pointer.coordinates.y);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
@@ -312,10 +324,10 @@ export class Sand {
       textures.first = textures.next;
       textures.next = swap;
 
-      //requestAnimationFrame(mainLoop);
+      requestAnimationFrame(mainLoop);
     };
 
     mainLoop();
-    setInterval(mainLoop, 1000 / 2);
+    //setInterval(mainLoop, 1000 / 2);
   }
 }
