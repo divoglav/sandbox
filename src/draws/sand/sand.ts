@@ -78,14 +78,25 @@ export class Sand {
       state.push(time);
     }
 
-    const blockCells = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    for (let i = 0; i < blockCells.length; i++) {
-      state[blockCells[i] * 3 + 1] = 1;
+    const bytes = 3;
+
+    // Blocks
+    for (let y = 0; y < this.yCount; y++) {
+      for (let x = 0; x < this.xCount; x++) {
+        const index = y * this.xCount + x;
+
+        if (y == 0) state[index * bytes + 1] = 1;
+        else if (y == this.yCount - 1) state[index * bytes + 1] = 1;
+
+        if (x == 0) state[index * bytes + 1] = 1;
+        else if (x == this.xCount - 1) state[index * bytes + 1] = 1;
+      }
     }
 
-    const sandCells = [96, 86, 66, 52, 53];
+    // Sand
+    const sandCells = [86, 76, 56, 52, 53];
     for (let i = 0; i < sandCells.length; i++) {
-      state[sandCells[i] * 3 + 1] = 2;
+      state[sandCells[i] * bytes + 1] = 2;
     }
 
     return state;
@@ -107,7 +118,7 @@ export class Sand {
 
     const data = {
       state: new Uint8Array(this.generateStateData()),
-      emptyState: new Uint8Array(this.generateStateData()),
+      emptyState: new Uint8Array(this.totalCells * 3),
       canvasVertices: new Float32Array(Utilities.WebGL.Points.rectangle(0, 0, 1, 1)),
     };
 
@@ -221,8 +232,7 @@ export class Sand {
       //requestAnimationFrame(mainLoop);
     };
 
-    mainLoop();
+    //mainLoop();
     setInterval(mainLoop, 1000 / 2);
-    //requestAnimationFrame(mainLoop);
   }
 }
