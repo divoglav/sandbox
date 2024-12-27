@@ -11,9 +11,6 @@ export class Sand {
   private readonly width = 30;
   private readonly height = 30;
 
-  //private readonly pointSize = 78; // for 10x10
-  private readonly pointSize = 26; // for 10x10
-
   private readonly pointerArea = 0.02;
 
   private readonly brightness = 0.6;
@@ -134,26 +131,46 @@ export class Sand {
 
   private setupUniformBlock(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const blockIndices = {
-      shared: gl.getUniformBlockIndex(programs.update, "SharedStaticData"),
-      update: gl.getUniformBlockIndex(programs.update, "UpdateStaticData"),
-      render: gl.getUniformBlockIndex(programs.render, "RenderStaticData"),
+      update: {
+        types: gl.getUniformBlockIndex(programs.update, "TypesStaticData"),
+        directions: gl.getUniformBlockIndex(programs.update, "DirectionsStaticData"),
+        misc: gl.getUniformBlockIndex(programs.update, "MiscStaticData"),
+      },
+
+      render: {
+        types: gl.getUniformBlockIndex(programs.render, "TypesStaticData"),
+        dimensions: gl.getUniformBlockIndex(programs.render, "DimensionsStaticData"),
+        colors: gl.getUniformBlockIndex(programs.render, "ColorsStaticData"),
+        misc: gl.getUniformBlockIndex(programs.render, "MiscStaticData"),
+      },
     };
 
     const buffers = {
-      shared: gl.createBuffer(),
-      update: gl.createBuffer(),
-      render: gl.createBuffer(),
+      types: gl.createBuffer(),
+      dimensions: gl.createBuffer(),
+      directions: gl.createBuffer(),
+      colors: gl.createBuffer(),
+      misc: gl.createBuffer(),
     };
 
     const data = {
-      shared: new Float32Array([this.types.empty, this.types.block, this.types.sand, 0]),
+      //prettier-ignore
+      types: new Float32Array([
+        this.types.empty,
+        this.types.block,
+        this.types.sand,
+        0,
+      ]),
 
-      update: new Float32Array([
-        this.pointerArea,
-        0,
-        0,
-        0,
+      //prettier-ignore
+      dimensions: new Float32Array([
+        this.width,
+        this.height,
+        this.canvas.width,
+        this.canvas.height,
+      ]),
 
+      directions: new Float32Array([
         this.directions.north.x,
         this.directions.north.y,
         this.directions.northEast.x,
@@ -175,52 +192,70 @@ export class Sand {
         this.directions.northWest.y,
       ]),
 
-      render: new Float32Array([
-        this.width,
-        this.height,
-        this.pointSize,
-        this.brightness,
-
+      colors: new Float32Array([
         this.colors.error.r,
         this.colors.error.g,
         this.colors.error.b,
-        0,
+        1.0,
 
         this.colors.empty.r,
         this.colors.empty.g,
         this.colors.empty.b,
-        0,
+        1.0,
 
         this.colors.block.r,
         this.colors.block.g,
         this.colors.block.b,
-        0,
+        1.0,
 
         this.colors.sand.r,
         this.colors.sand.g,
         this.colors.sand.b,
+        1.0,
+      ]),
+
+      //prettier-ignore
+      misc: new Float32Array([
+        this.brightness,
+        this.pointerArea,
+        0,
         0,
       ]),
     };
 
-    const sharedIndex = 0;
-    gl.uniformBlockBinding(programs.update, blockIndices.shared, sharedIndex);
-    gl.uniformBlockBinding(programs.render, blockIndices.shared, sharedIndex);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.shared);
-    gl.bufferData(gl.UNIFORM_BUFFER, data.shared, gl.STATIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, sharedIndex, buffers.shared);
+    const typesIndex = 0;
+    gl.uniformBlockBinding(programs.update, blockIndices.update.types, typesIndex);
+    gl.uniformBlockBinding(programs.render, blockIndices.render.types, typesIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.types);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.types, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, typesIndex, buffers.types);
 
-    const updateIndex = 1;
-    gl.uniformBlockBinding(programs.update, blockIndices.update, updateIndex);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.update);
-    gl.bufferData(gl.UNIFORM_BUFFER, data.update, gl.STATIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, updateIndex, buffers.update);
+    const dimensionsIndex = 1;
+    gl.uniformBlockBinding(programs.render, blockIndices.render.dimensions, dimensionsIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.dimensions);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.dimensions, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, dimensionsIndex, buffers.dimensions);
 
-    const renderIndex = 2;
-    gl.uniformBlockBinding(programs.render, blockIndices.render, renderIndex);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.render);
-    gl.bufferData(gl.UNIFORM_BUFFER, data.render, gl.STATIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, renderIndex, buffers.render);
+    const directionsIndex = 2;
+    gl.uniformBlockBinding(programs.update, blockIndices.update.directions, directionsIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.directions);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.directions, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, directionsIndex, buffers.directions);
+
+    const colorsIndex = 3;
+    gl.uniformBlockBinding(programs.render, blockIndices.render.colors, colorsIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.colors);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.colors, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, colorsIndex, buffers.colors);
+
+    const miscIndex = 4;
+    gl.uniformBlockBinding(programs.update, blockIndices.update.misc, miscIndex);
+    gl.uniformBlockBinding(programs.render, blockIndices.render.misc, miscIndex);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.misc);
+    gl.bufferData(gl.UNIFORM_BUFFER, data.misc, gl.STATIC_DRAW);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, miscIndex, buffers.misc);
+
+    console.log(blockIndices)
   }
 
   private setupState(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
@@ -228,6 +263,7 @@ export class Sand {
       update: {
         aCanvasVertices: gl.getAttribLocation(programs.update, "a_canvasVertices"),
         uOldTextureIndex: gl.getUniformLocation(programs.update, "u_oldTextureIndex"),
+        uPointerArea: gl.getUniformLocation(programs.update, "u_pointerArea"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
         uIsPointerDown: gl.getUniformLocation(programs.update, "u_isPointerDown"),
       },

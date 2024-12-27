@@ -6,36 +6,37 @@ out vec4 outColor;
 flat in vec2 v_coordinates;
 
 uniform sampler2D u_newTextureIndex;
-layout(std140) uniform SharedStaticData {
+layout(std140) uniform TypesStaticData {
   float EMPTY;
   float BLOCK;
   float SAND;
+  float padT0;
 };
-layout(std140) uniform RenderStaticData {
-  float width;
-  float height;
-  float pointSize;
-  float brightness;
-
-  vec3 colorError;
-  vec3 colorEmpty;
-  vec3 colorBlock;
-  vec3 colorSand;
+layout(std140) uniform ColorsStaticData {
+  vec4 COLOR_ERROR;
+  vec4 COLOR_EMPTY;
+  vec4 COLOR_BLOCK;
+  vec4 COLOR_SAND;
+};
+layout(std140) uniform MiscStaticData {
+  float BRIGHTNESS;
+  float POINTER_AREA;
+  float padM0;
+  float padM1;
 };
 
 void main() {
   vec3 nextData = texture(u_newTextureIndex, v_coordinates).rgb;
-
   float isUpdated = nextData.r;
   float type = nextData.g;
   float time = nextData.b;
 
   if(type == EMPTY)
-    outColor = vec4(colorEmpty, 1.0) * brightness;
+    outColor = COLOR_EMPTY * BRIGHTNESS;
   else if(type == BLOCK)
-    outColor = vec4(colorBlock, 1.0) * brightness;
+    outColor = COLOR_BLOCK * BRIGHTNESS;
   else if(type == SAND)
-    outColor = vec4(colorSand,  1.0) * brightness;
+    outColor = COLOR_SAND  * BRIGHTNESS;
   else
-    outColor = vec4(colorError, 1.0) * brightness;
+    outColor = COLOR_ERROR * BRIGHTNESS;
 }

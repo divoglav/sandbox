@@ -8,17 +8,13 @@ out vec4 outData;
 uniform sampler2D u_oldTextureIndex;
 uniform vec2 u_pointerPosition;
 uniform bool u_isPointerDown;
-layout(std140) uniform SharedStaticData {
+layout(std140) uniform TypesStaticData {
   float EMPTY;
   float BLOCK;
   float SAND;
+  float padT0;
 };
-layout(std140) uniform UpdateStaticData {
-  float pointerArea;
-  float padding1;
-  float padding2;
-  float padding3;
-
+layout(std140) uniform DirectionsStaticData {
   vec2 NORTH;
   vec2 NORTH_EAST;
   vec2 EAST;
@@ -28,9 +24,15 @@ layout(std140) uniform UpdateStaticData {
   vec2 WEST;
   vec2 NORTH_WEST;
 };
+layout(std140) uniform MiscStaticData {
+  float BRIGHTNESS;
+  float POINTER_AREA;
+  float padM0;
+  float padM1;
+};
 
 bool isPointerHere() {
-  return distance(u_pointerPosition, v_coordinates) < pointerArea;
+  return distance(u_pointerPosition, v_coordinates) < POINTER_AREA;
 }
 
 vec3 getNeighborData(vec2 offset) {
