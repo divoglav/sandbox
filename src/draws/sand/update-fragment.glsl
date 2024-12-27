@@ -17,10 +17,14 @@ const float EMPTY = byteFloat * 0.0;
 const float BLOCK = byteFloat * 1.0;
 const float SAND  = byteFloat * 2.0;
 
-const vec2 NORTH = vec2(0.0, texelSize.y);
-const vec2 EAST  = vec2(texelSize.x, 0);
-const vec2 SOUTH = vec2(0.0, -texelSize.y);
-const vec2 WEST  = vec2(-texelSize.x, 0);
+const vec2 NORTH      = vec2(0.0,           texelSize.y);
+const vec2 NORTH_EAST = vec2(texelSize.x,   texelSize.y);
+const vec2 EAST       = vec2(texelSize.x,   0);
+const vec2 SOUTH_EAST = vec2(texelSize.x,  -texelSize.y);
+const vec2 SOUTH      = vec2(0.0,          -texelSize.y);
+const vec2 SOUTH_WEST = vec2(-texelSize.x, -texelSize.y);
+const vec2 WEST       = vec2(-texelSize.x,  0);
+const vec2 NORTH_WEST = vec2(-texelSize.x,  texelSize.y);
 
 vec3 getNeighborData(vec2 offset) {
   return texture(u_oldTextureIndex, v_coordinates + offset).rgb;
