@@ -3,16 +3,14 @@
 flat out vec2 v_coordinates;
 
 layout(std140) uniform DimensionsStaticData {
-  float WIDTH;
-  float HEIGHT;
-  float CANVAS_WIDTH;
-  float CANVAS_HEIGHT;
+  vec2 GRID_DIMENSIONS;
+  vec2 CANVAS_DIMENSIONS;
 };
 
 vec2 getCoordinates(float id) {
-  float xIndex = mod(id, WIDTH);
-  float yIndex = floor(id / WIDTH);
-  return vec2((xIndex + 0.5) / WIDTH, (yIndex + 0.5) / HEIGHT);
+  float xIndex = mod(id, GRID_DIMENSIONS.x);
+  float yIndex = floor(id / GRID_DIMENSIONS.x);
+  return vec2((xIndex + 0.5) / GRID_DIMENSIONS.x, (yIndex + 0.5) / GRID_DIMENSIONS.y);
 }
 
 void main() {
@@ -20,7 +18,7 @@ void main() {
 
   vec2 clipSpace = point * 2.0 - 1.0;
   gl_Position = vec4(clipSpace, 0.0, 1.0);
-  gl_PointSize = 800.0 / WIDTH - 0.5;
+  gl_PointSize = (CANVAS_DIMENSIONS.x / GRID_DIMENSIONS.x) - 1.0;
 
   v_coordinates = point;
 }

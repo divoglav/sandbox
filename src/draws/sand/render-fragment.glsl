@@ -12,18 +12,13 @@ layout(std140) uniform TypesStaticData {
   float SAND;
   float padT0;
 };
-layout(std140) uniform ColorsStaticData {
-  vec4 COLOR_ERROR;
-  vec4 COLOR_EMPTY;
-  vec4 COLOR_BLOCK;
-  vec4 COLOR_SAND;
-};
-layout(std140) uniform MiscStaticData {
-  float BRIGHTNESS;
-  float POINTER_AREA;
-  float padM0;
-  float padM1;
-};
+
+const vec4 COLOR_ERROR = vec4(1.0,  0.0,  1.0,  1.0);
+const vec4 COLOR_EMPTY = vec4(0.5,  0.5,  0.5,  1.0);
+const vec4 COLOR_BLOCK = vec4(0.1,  0.1,  0.1,  1.0);
+const vec4 COLOR_SAND  = vec4(0.75, 0.75, 0.5,  1.0);
+
+const float BRIGHTNESS = 0.6;
 
 void main() {
   vec3 nextData = texture(u_newTextureIndex, v_coordinates).rgb;
