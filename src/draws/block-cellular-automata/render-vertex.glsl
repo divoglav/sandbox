@@ -10,11 +10,12 @@ layout(std140) uniform DimensionsStaticData {
 vec2 getCoordinates(float id) {
   float xIndex = mod(id, GRID_DIMENSIONS.x);
   float yIndex = floor(id / GRID_DIMENSIONS.x);
-  return vec2((xIndex + 0.5) / GRID_DIMENSIONS.x, (yIndex + 0.5) / GRID_DIMENSIONS.y);
+  return vec2(xIndex, yIndex);
 }
 
 void main() {
-  vec2 point = getCoordinates(float(gl_VertexID));
+  vec2 coordinates = getCoordinates(float(gl_VertexID));
+  vec2 point = (coordinates + 0.5) / GRID_DIMENSIONS;
 
   vec2 clipSpace = point * 2.0 - 1.0;
   gl_Position = vec4(clipSpace, 0.0, 1.0);

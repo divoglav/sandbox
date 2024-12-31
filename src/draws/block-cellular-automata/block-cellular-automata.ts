@@ -1,24 +1,15 @@
-import { Vector2, WebGL } from "../../utilities/utilities";
+import { Random, Vector2, WebGL } from "../../utilities/utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class Sand {
+export class BlockCellularAutomata {
   private readonly width = 10;
   private readonly height = 10;
 
-  private readonly byteFloat = 1 / 255;
-
-  private readonly types = {
-    empty: this.byteFloat * 0,
-    block: this.byteFloat * 1,
-    sand: this.byteFloat * 2,
-  };
-
   private readonly totalCells = this.width * this.height;
-  private readonly bytesPerCell = 3;
 
   private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
   private initialized = false;
@@ -74,32 +65,10 @@ export class Sand {
     const state: number[] = [];
 
     for (let i = 0; i < this.totalCells; i++) {
-      const isUpdated = 0;
-      const type = 0;
-      const time = 0;
-
-      state.push(isUpdated);
-      state.push(type);
-      state.push(time);
-    }
-
-    // Blocks
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const index = (y * this.width + x) * this.bytesPerCell;
-
-        if (y == 0) state[index + 1] = 1;
-        else if (y == this.height - 1) state[index + 1] = 1;
-
-        if (x == 0) state[index + 1] = 1;
-        else if (x == this.width - 1) state[index + 1] = 1;
-      }
-    }
-
-    // Sand
-    const sandCells = [16];
-    for (let i = 0; i < sandCells.length; i++) {
-      state[sandCells[i] * this.bytesPerCell + 1] = 2;
+      state.push(Math.random() < 0.1 ? 1 : 0);
+      state.push(0);
+      state.push(0);
+      state.push(0);
     }
 
     return state;
@@ -107,30 +76,17 @@ export class Sand {
 
   private setupUniformBlock(gl: WebGL2RenderingContext, programs: { update: WebGLProgram; render: WebGLProgram }) {
     const blockIndices = {
-      update: {
-        types: gl.getUniformBlockIndex(programs.update, "TypesStaticData"),
-      },
-
+      update: {},
       render: {
-        types: gl.getUniformBlockIndex(programs.render, "TypesStaticData"),
         dimensions: gl.getUniformBlockIndex(programs.render, "DimensionsStaticData"),
       },
     };
 
     const buffers = {
-      types: gl.createBuffer(),
       dimensions: gl.createBuffer(),
     };
 
     const data = {
-      //prettier-ignore
-      types: new Float32Array([
-        this.types.empty,
-        this.types.block,
-        this.types.sand,
-        0,
-      ]),
-
       //prettier-ignore
       dimensions: new Float32Array([
         this.width,
@@ -138,17 +94,9 @@ export class Sand {
         this.canvas.width,
         this.canvas.height,
       ]),
-
     };
 
-    const typesIndex = 0;
-    gl.uniformBlockBinding(programs.update, blockIndices.update.types, typesIndex);
-    gl.uniformBlockBinding(programs.render, blockIndices.render.types, typesIndex);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.types);
-    gl.bufferData(gl.UNIFORM_BUFFER, data.types, gl.STATIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, typesIndex, buffers.types);
-
-    const dimensionsIndex = 1;
+    const dimensionsIndex = 0;
     gl.uniformBlockBinding(programs.render, blockIndices.render.dimensions, dimensionsIndex);
     gl.bindBuffer(gl.UNIFORM_BUFFER, buffers.dimensions);
     gl.bufferData(gl.UNIFORM_BUFFER, data.dimensions, gl.STATIC_DRAW);
@@ -159,21 +107,21 @@ export class Sand {
     const locations = {
       update: {
         aCanvasVertices: gl.getAttribLocation(programs.update, "a_canvasVertices"),
-        uOldTextureIndex: gl.getUniformLocation(programs.update, "u_oldTextureIndex"),
+        uInputTextureIndex: gl.getUniformLocation(programs.update, "u_inputTextureIndex"),
         uPointerArea: gl.getUniformLocation(programs.update, "u_pointerArea"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
         uIsPointerDown: gl.getUniformLocation(programs.update, "u_isPointerDown"),
+        uPartition: gl.getUniformLocation(programs.update, "u_partition"),
       },
       render: {
-        uNewTextureIndex: gl.getUniformLocation(programs.render, "u_newTextureIndex"),
+        uOutputTextureIndex: gl.getUniformLocation(programs.render, "u_outputTextureIndex"),
       },
     };
 
     this.setupUniformBlock(gl, programs);
 
     const data = {
-      state: new Uint8Array(this.generateData()),
-      emptyState: new Uint8Array(this.totalCells * this.bytesPerCell),
+      state: new Int8Array(this.generateData()),
       canvasVertices: new Float32Array(WebGL.Points.rectangle(0, 0, 1, 1)),
     };
 
@@ -183,8 +131,8 @@ export class Sand {
     };
 
     const textures = {
-      first: gl.createTexture(),
-      next: gl.createTexture(),
+      input: gl.createTexture(),
+      output: gl.createTexture(),
     };
 
     const framebuffers = {
@@ -198,12 +146,12 @@ export class Sand {
     gl.enableVertexAttribArray(locations.update.aCanvasVertices);
     gl.vertexAttribPointer(locations.update.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindTexture(gl.TEXTURE_2D, textures.first);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, this.width, this.height, 0, gl.RGB, gl.UNSIGNED_BYTE, data.state);
+    gl.bindTexture(gl.TEXTURE_2D, textures.input);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8I, this.width, this.height, 0, gl.RGBA_INTEGER, gl.BYTE, data.state);
     WebGL.Texture.applyClampAndNearest(gl);
 
-    gl.bindTexture(gl.TEXTURE_2D, textures.next);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, this.width, this.height, 0, gl.RGB, gl.UNSIGNED_BYTE, data.emptyState);
+    gl.bindTexture(gl.TEXTURE_2D, textures.output);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8I, this.width, this.height, 0, gl.RGBA_INTEGER, gl.BYTE, data.state);
     WebGL.Texture.applyClampAndNearest(gl);
 
     return { locations, vertexArrayObjects, textures, framebuffers };
@@ -218,17 +166,21 @@ export class Sand {
 
     const { locations, vertexArrayObjects, textures, framebuffers } = this.setupState(gl, programs);
 
+    let partition: boolean = false;
+
     const updateLoop = () => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.update);
       gl.viewport(0, 0, this.width, this.height);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures.next, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures.output, 0);
+
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, textures.first);
+      gl.bindTexture(gl.TEXTURE_2D, textures.input);
 
       gl.useProgram(programs.update);
       gl.bindVertexArray(vertexArrayObjects.update);
 
-      gl.uniform1i(locations.update.uOldTextureIndex, 0);
+      gl.uniform1i(locations.update.uInputTextureIndex, 0);
+      gl.uniform1i(locations.update.uPartition, partition ? 1 : 0);
       gl.uniform1i(locations.update.uIsPointerDown, this.pointer.isDown);
       gl.uniform2f(locations.update.uPointerPosition, this.pointer.coordinates.x, this.pointer.coordinates.y);
 
@@ -238,13 +190,14 @@ export class Sand {
     const renderLoop = () => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, textures.next);
+      gl.bindTexture(gl.TEXTURE_2D, textures.output);
 
       gl.useProgram(programs.render);
       gl.bindVertexArray(vertexArrayObjects.render);
 
-      gl.uniform1i(locations.render.uNewTextureIndex, 0);
+      gl.uniform1i(locations.render.uOutputTextureIndex, 0);
 
       gl.drawArrays(gl.POINTS, 0, this.totalCells);
     };
@@ -253,14 +206,16 @@ export class Sand {
       updateLoop();
       renderLoop();
 
-      const swap = textures.first;
-      textures.first = textures.next;
-      textures.next = swap;
+      partition = !partition;
+
+      const swap = textures.input;
+      textures.input = textures.output;
+      textures.output = swap;
 
       //requestAnimationFrame(mainLoop);
     };
 
     mainLoop();
-    setInterval(mainLoop, 1000 / 3);
+    setInterval(mainLoop, 1000 / 10);
   }
 }
