@@ -65,7 +65,7 @@ export class BlockCellularAutomata {
     const state: number[] = [];
 
     for (let i = 0; i < this.totalCells; i++) {
-      state.push(Math.random() < 0.1 ? 1 : 0);
+      state.push(Random.percent(10) ? 1 : 0);
       state.push(0);
       state.push(0);
       state.push(0);
