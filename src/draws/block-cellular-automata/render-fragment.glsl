@@ -28,11 +28,11 @@ const int BLUE = 4;
 const int YELLOW = 5;
 
 void main() {
-  ivec4 outputData = texelFetch(u_outputTextureIndex, ivec2(v_coordinates * GRID_DIMENSIONS), 0);
+  ivec4 outputData = texelFetch(u_outputTextureIndex,
+                                ivec2(v_coordinates * GRID_DIMENSIONS),
+                                0);
 
-  int state = outputData.r;
-
-  switch(state) {
+  switch(outputData.r) {
     case NONE: outColor = COLOR_NONE;
     break;
     case CELL: outColor = COLOR_CELL;

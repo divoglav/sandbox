@@ -64,14 +64,15 @@ export class BlockCellularAutomata {
   private generateData() {
     const state: number[] = [];
     for (let i = 0; i < this.totalCells; i++) {
-      state.push(Random.percent(0) ? 1 : 0);
+      state.push(Random.percent(10) ? 1 : 0);
+      //state.push(0);
       state.push(0);
       state.push(0);
       state.push(0);
     }
 
-    //let row = 2;
-    //let col = 2;
+    //let row = 1;
+    //let col = 1;
     //state[(row * this.width + col) * 4] = 1;
 
     return state;
@@ -219,6 +220,6 @@ export class BlockCellularAutomata {
     };
 
     mainLoop();
-    setInterval(mainLoop, 1000 / 10);
+    setInterval(mainLoop, 1000 / 2);
   }
 }
