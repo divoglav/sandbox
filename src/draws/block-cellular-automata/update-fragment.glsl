@@ -23,18 +23,39 @@ const ivec2 SOUTH_WEST = ivec2(-1, -1);
 const ivec2 WEST       = ivec2(-1,  0);
 const ivec2 NORTH_WEST = ivec2(-1,  1);
 
+const int NONE = 0;
+const int CELL = 1;
+const int RED = 2;
+const int GREEN = 3;
+const int BLUE = 4;
+const int YELLOW = 5;
+
+const int identity[16] = int[16](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+
+int encodeBlockStates(ivec4 cellStates) {
+  return cellStates.r +       // R: bottom-left cell
+         cellStates.g * 2 +   // G: bottom-right cell
+         cellStates.b * 4 +   // B: top-left cell
+         cellStates.a * 8;    // A: top-right cell
+}
+
+ivec4 decodeBlockStates(int state) {
+  return ivec4(
+     state       & 1,   // R: bottom-left cell
+    (state >> 1) & 1,   // G: bottom-right cell
+    (state >> 2) & 1,   // B: top-left cell
+    (state >> 3) & 1    // A: top-right cell
+  );
+}
+
 ivec2 getBlock(ivec2 cellCoordinates, bool alteration) {
   return (alteration ? cellCoordinates + 1 : cellCoordinates) / 2;
 }
 
-// ivec2 getBlock(ivec2 cellCoordinates) {
-//   return cellCoordinates / 2;
-// }
-
 int getInBlockIndex(ivec2 cell, bool alteration) {
   ivec2 alteredCell = alteration ? cell + 1 : cell;
-
-  return (alteredCell.x % 2) + 2 * (alteredCell.y % 2);
+  // Better than: (alteredCell.x % 2) + 2 * (alteredCell.y % 2);
+  return (alteredCell.x & 1) + 2 * (alteredCell.y & 1);
 }
 
 ivec4 getData(ivec2 cell) {
@@ -50,23 +71,22 @@ void main() {
 
   ivec4 inputData = getData(cell);
   int state = inputData.r;
-  int g = inputData.g;
-  int b = inputData.b;
-  int a = inputData.a;
 
-  const bool alteration = false;
+  const bool alteration = true;
 
   ivec2 block = getBlock(cell, alteration);
-  // ivec2 block = getBlock(cell);
+  int inBlockIndex = getInBlockIndex(cell, alteration);
 
-  // state = 0;
-  // if(cell.x == 5 && cell.y == 4) state = 2;
-  // if(block.x == 1 && block.y == 1) state = 2;
+  if(block == ivec2(1, 1)) {
+    state = YELLOW;
 
-  if(block.x == 1 && block.y == 1) {
-    state = 2;
-    if(getInBlockIndex(cell, alteration) == 0) state = 3;
+    if(inBlockIndex == 0)
+      state = RED;
   }
+
+
+  int blockStates[4];
+  // blockStates[0] = getData()
 
   outData = ivec4(state, 0, 0, 0);
 }

@@ -14,7 +14,7 @@ export class BlockCellularAutomata {
   private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -63,13 +63,16 @@ export class BlockCellularAutomata {
 
   private generateData() {
     const state: number[] = [];
-
     for (let i = 0; i < this.totalCells; i++) {
-      state.push(Random.percent(10) ? 1 : 0);
+      state.push(Random.percent(0) ? 1 : 0);
       state.push(0);
       state.push(0);
       state.push(0);
     }
+
+    //let row = 2;
+    //let col = 2;
+    //state[(row * this.width + col) * 4] = 1;
 
     return state;
   }
