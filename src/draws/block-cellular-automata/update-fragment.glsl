@@ -33,7 +33,7 @@ const int YELLOW = 5;
 const int identity[16] = int[16]( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
 const int clean[16]    = int[16]( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0);
 const int fill[16]     = int[16](15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15);
-const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  1, 11,  3,  7, 11, 15);
+const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  3, 11,  3,  7, 11, 15);
 
 const ivec2 DIMENSIONS = ivec2(100, 100);
 
@@ -77,10 +77,6 @@ ivec4 getBlockPattern(ivec2 block, bool alteration) {
   );
 }
 
-// bool isWall(ivec2 cell) {
-//   return cell.x == 0 && 
-// }
-
 bool isAtPointer() {
   return distance(u_pointerPosition, v_coordinates) < POINTER_AREA;
 }
@@ -111,6 +107,9 @@ void main() {
   int inNewBlockIndex = getInBlockIndex(cell, alteration);
 
   state = decodedNewBlockPattern[inNewBlockIndex];
+
+  if(isAtPointer() && u_isPointerDown)
+    state = 1;
 
   outData = ivec4(state, 0, 0, 0);
 }

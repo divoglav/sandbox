@@ -1,3 +1,6 @@
+// TODO: consider multiple alterations.
+// TODO: build a pattern drawer
+
 import { Random, Vector2, WebGL } from "../../utilities/utilities";
 
 import updateVertex from "./update-vertex.glsl";
@@ -6,8 +9,11 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class BlockCellularAutomata {
-  private readonly width = 50;
-  private readonly height = 50;
+  private readonly width = 100;
+  private readonly height = 100;
+
+  private readonly percent = 0;
+  private readonly FPS: number = 30; // Temporary; -1 for full
 
   private readonly totalCells = this.width * this.height;
 
@@ -66,8 +72,7 @@ export class BlockCellularAutomata {
 
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        const r = Random.percent(20) ? 1 : 0;
-        state.push(r, 0, 0, 0);
+        state.push(Random.percent(this.percent) ? 1 : 0, 0, 0, 0);
       }
     }
 
@@ -75,10 +80,6 @@ export class BlockCellularAutomata {
       for (let x = 0; x < this.width; x++) {
         const index = (y * this.width + x) * 4;
         if (y === 0) state[index] = 1;
-        else if (y === this.height - 1) state[index] = 1;
-
-        if (x === 0) state[index] = 1;
-        else if (x === this.width - 1) state[index] = 1;
       }
     }
 
@@ -223,10 +224,11 @@ export class BlockCellularAutomata {
       textures.input = textures.output;
       textures.output = swap;
 
-      //requestAnimationFrame(mainLoop);
+      if (this.FPS === -1) requestAnimationFrame(mainLoop);
     };
 
     mainLoop();
-    setInterval(mainLoop, 1000 / 20);
+
+    if (this.FPS !== -1) setInterval(mainLoop, 1000 / this.FPS);
   }
 }
