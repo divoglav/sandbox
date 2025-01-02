@@ -1,5 +1,9 @@
+// TODO: cleanup for a simple block ca with only 1 boolean data channel.
+// TODO: convert to bvec4 in the update fragment shader.
+
 // TODO: consider multiple alterations.
-// TODO: build a pattern drawer
+// TODO: build a pattern drawer!
+// TODO: try dissapearing water where if bottom single it dissapears.
 
 import { Random, Vector2, WebGL } from "../../utilities/utilities";
 
@@ -9,11 +13,11 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class BlockCellularAutomata {
-  private readonly width = 100;
-  private readonly height = 100;
+  private readonly width = 200;
+  private readonly height = 200;
 
-  private readonly percent = 0;
-  private readonly FPS: number = 30; // Temporary; -1 for full
+  private readonly percent = 1;
+  private readonly FPS: number = -1; // Temporary; -1 for full
 
   private readonly totalCells = this.width * this.height;
 
@@ -76,12 +80,12 @@ export class BlockCellularAutomata {
       }
     }
 
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const index = (y * this.width + x) * 4;
-        if (y === 0) state[index] = 1;
-      }
-    }
+    //for (let y = 0; y < this.height; y++) {
+    //  for (let x = 0; x < this.width; x++) {
+    //    const index = (y * this.width + x) * 4;
+    //    if (y === 0) state[index] = 1;
+    //  }
+    //}
 
     return state;
   }

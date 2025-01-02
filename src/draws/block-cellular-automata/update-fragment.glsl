@@ -12,8 +12,10 @@ uniform bool u_partition;
 uniform bool u_isPointerDown;
 uniform vec2 u_pointerPosition;
 
-const float POINTER_AREA = 0.05;
+const ivec2 DIMENSIONS = ivec2(100, 100);
+const float POINTER_AREA = 0.01;
 
+// Neighbor Offsets.
 const ivec2 NORTH      = ivec2( 0,  1);
 const ivec2 NORTH_EAST = ivec2( 1,  1);
 const ivec2 EAST       = ivec2( 1,  0);
@@ -23,20 +25,15 @@ const ivec2 SOUTH_WEST = ivec2(-1, -1);
 const ivec2 WEST       = ivec2(-1,  0);
 const ivec2 NORTH_WEST = ivec2(-1,  1);
 
-const int NONE = 0;
-const int CELL = 1;
-const int RED = 2;
-const int GREEN = 3;
-const int BLUE = 4;
-const int YELLOW = 5;
-
+// Block Pattern Transforms.
 const int identity[16] = int[16]( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
 const int clean[16]    = int[16]( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0);
 const int fill[16]     = int[16](15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15);
 const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  3, 11,  3,  7, 11, 15);
+const int water[16]    = int[16]( 0,  2,  1,  3,  1,  3,  3, 11,  2,  3,  3,  7,  3,  7, 11, 15);
+const int tron[16]     = int[16](15,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  0);
 
-const ivec2 DIMENSIONS = ivec2(100, 100);
-
+// Encodes 4 bits into a number [0 to 15].
 int encodeBlockPattern(ivec4 cellStates) {
   return cellStates.r +       // R: bottom-left cell
          cellStates.g * 2 +   // G: bottom-right cell
@@ -44,6 +41,7 @@ int encodeBlockPattern(ivec4 cellStates) {
          cellStates.a * 8;    // A: top-right cell
 }
 
+// Decodes a number [0 to 15] back to 4 bits.
 ivec4 decodeBlockPattern(int pattern) {
   return ivec4(
      pattern       & 1,   // R: bottom-left cell
@@ -53,19 +51,23 @@ ivec4 decodeBlockPattern(int pattern) {
   );
 }
 
+// Coordinates of a 2x2 margolus block.
 ivec2 getBlock(ivec2 cellCoordinates, bool alteration) {
   return (alteration ? cellCoordinates + 1 : cellCoordinates) / 2;
 }
 
+// The block index [0 to 3] of a cell.
 int getInBlockIndex(ivec2 cell, bool alteration) {
   ivec2 alteredCell = alteration ? cell + 1 : cell;
   return (alteredCell.x & 1) + 2 * (alteredCell.y & 1);
 }
 
+// Texel data.
 ivec4 getData(ivec2 cell) {
   return texelFetch(u_inputTextureIndex, cell, 0);
 }
 
+// The block pattern of cell types in 4 bits.
 ivec4 getBlockPattern(ivec2 block, bool alteration) {
   // TODO: plus or minus for the alteration?
   ivec2 cell = block * 2 - (alteration ? 1 : 0);
@@ -84,13 +86,19 @@ bool isAtPointer() {
 void main() {
   ivec2 cell = ivec2(gl_FragCoord.xy);
 
-  ivec4 inputData = getData(cell);
-  int state = inputData.r;
-
+  // Bottom Wall
   if(cell.y == 0) {
-    outData = ivec4(state, 0, 0, 0);
+    outData = ivec4(1, 0, 0, 0);
     return;
   }
+
+  if(isAtPointer() && u_isPointerDown) {
+    outData = ivec4(1, 0, 0, 0);
+    return;
+  }
+
+  ivec4 inputData = getData(cell);
+  int state = inputData.r;
 
   bool alteration = u_partition;
 
@@ -108,8 +116,6 @@ void main() {
 
   state = decodedNewBlockPattern[inNewBlockIndex];
 
-  if(isAtPointer() && u_isPointerDown)
-    state = 1;
-
   outData = ivec4(state, 0, 0, 0);
 }
+

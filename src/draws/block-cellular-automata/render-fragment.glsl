@@ -13,18 +13,18 @@ layout(std140) uniform DimensionsStaticData {
   vec2 CANVAS_DIMENSIONS;
 };
 
-const vec4 COLOR_NONE = vec4(0.1,  0.1,  0.1,  1.0);
-const vec4 COLOR_CELL = vec4(0.4,  0.4,  0.4,  1.0);
-const vec4 COLOR_RED = vec4(0.5,  0.0,  0.0,  1.0);
-const vec4 COLOR_GREEN = vec4(0.0,  0.5,  0.0,  1.0);
-const vec4 COLOR_BLUE = vec4(0.0,  0.0,  0.5,  1.0);
+const vec4 COLOR_NONE   = vec4(0.1,  0.1,  0.1,  1.0);
+const vec4 COLOR_CELL   = vec4(0.5,  0.5,  0.5,  1.0);
+const vec4 COLOR_RED    = vec4(0.5,  0.0,  0.0,  1.0);
+const vec4 COLOR_GREEN  = vec4(0.0,  0.5,  0.0,  1.0);
+const vec4 COLOR_BLUE   = vec4(0.0,  0.0,  0.5,  1.0);
 const vec4 COLOR_YELLOW = vec4(0.5,  0.5,  0.0,  1.0);
 
-const int NONE = 0;
-const int CELL = 1;
-const int RED = 2;
-const int GREEN = 3;
-const int BLUE = 4;
+const int NONE   = 0;
+const int CELL   = 1;
+const int RED    = 2;
+const int GREEN  = 3;
+const int BLUE   = 4;
 const int YELLOW = 5;
 
 void main() {
