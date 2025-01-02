@@ -33,6 +33,9 @@ const int YELLOW = 5;
 const int identity[16] = int[16]( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
 const int clean[16]    = int[16]( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0);
 const int fill[16]     = int[16](15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15);
+const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  1, 11,  3,  7, 11, 15);
+
+const ivec2 DIMENSIONS = ivec2(100, 100);
 
 int encodeBlockPattern(ivec4 cellStates) {
   return cellStates.r +       // R: bottom-left cell
@@ -74,6 +77,10 @@ ivec4 getBlockPattern(ivec2 block, bool alteration) {
   );
 }
 
+// bool isWall(ivec2 cell) {
+//   return cell.x == 0 && 
+// }
+
 bool isAtPointer() {
   return distance(u_pointerPosition, v_coordinates) < POINTER_AREA;
 }
@@ -84,6 +91,11 @@ void main() {
   ivec4 inputData = getData(cell);
   int state = inputData.r;
 
+  if(cell.y == 0) {
+    outData = ivec4(state, 0, 0, 0);
+    return;
+  }
+
   bool alteration = u_partition;
 
   ivec2 block = getBlock(cell, alteration);
@@ -92,7 +104,7 @@ void main() {
 
   int encodedPattern = encodeBlockPattern(blockPattern);
 
-  int newBlockPattern = identity[encodedPattern];
+  int newBlockPattern = sand[encodedPattern];
 
   ivec4 decodedNewBlockPattern = decodeBlockPattern(newBlockPattern);
 

@@ -6,8 +6,8 @@ import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
 export class BlockCellularAutomata {
-  private readonly width = 10;
-  private readonly height = 10;
+  private readonly width = 50;
+  private readonly height = 50;
 
   private readonly totalCells = this.width * this.height;
 
@@ -63,17 +63,24 @@ export class BlockCellularAutomata {
 
   private generateData() {
     const state: number[] = [];
-    for (let i = 0; i < this.totalCells; i++) {
-      state.push(Random.percent(10) ? 1 : 0);
-      //state.push(0);
-      state.push(0);
-      state.push(0);
-      state.push(0);
+
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const r = Random.percent(20) ? 1 : 0;
+        state.push(r, 0, 0, 0);
+      }
     }
 
-    //let row = 1;
-    //let col = 1;
-    //state[(row * this.width + col) * 4] = 1;
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const index = (y * this.width + x) * 4;
+        if (y === 0) state[index] = 1;
+        else if (y === this.height - 1) state[index] = 1;
+
+        if (x === 0) state[index] = 1;
+        else if (x === this.width - 1) state[index] = 1;
+      }
+    }
 
     return state;
   }
@@ -220,6 +227,6 @@ export class BlockCellularAutomata {
     };
 
     mainLoop();
-    setInterval(mainLoop, 1000 / 2);
+    setInterval(mainLoop, 1000 / 20);
   }
 }
