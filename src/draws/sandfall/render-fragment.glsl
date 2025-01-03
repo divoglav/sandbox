@@ -13,16 +13,11 @@ layout(std140) uniform DimensionsStaticData {
   vec2 CANVAS_DIMENSIONS;
 };
 
-const int EMPTY = 0;
-const int BLOCK = 1;
-const int SAND  = 2;
-const int WATER = 3;
-
 const vec4 COLORS[4] = vec4[4](
-  vec4(0.1,  0.1,  0.1,  1.0),  // 0
-  vec4(0.5,  0.5,  0.5,  1.0),  // 1
-  vec4(0.5,  0.5,  0.1,  1.0),  // 2
-  vec4(0.0,  0.6,  0.3,  1.0)   // 3
+  vec4(0.1,  0.1,  0.1,  1.0),  // 0: Empty
+  vec4(0.5,  0.5,  0.5,  1.0),  // 1: Block
+  vec4(0.5,  0.5,  0.1,  1.0),  // 2: Sand
+  vec4(0.0,  0.6,  0.3,  1.0)   // 3: Water
 );
 
 void main() {

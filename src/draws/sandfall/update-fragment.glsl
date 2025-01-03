@@ -60,6 +60,7 @@ ivec4 getData(ivec2 cell) {
   return texelFetch(u_inputTextureIndex, cell, 0);
 }
 
+// TODO:
 // The block pattern of cell types in 4 bits.
 ivec4 getPattern(ivec2 block) {
   ivec2 cell = block * 2 - (u_partition ? 1 : 0);
@@ -71,8 +72,32 @@ ivec4 getPattern(ivec2 block) {
   );
 }
 
+// TODO:
+// The block pattern of cell types in 4 bits.
+ivec4 getBlockElements(ivec2 block) {
+  ivec2 cell = block * 2 - (u_partition ? 1 : 0);
+  return ivec4(
+    getData(cell             ).r,   // R: bottom-left cell
+    getData(cell + EAST      ).r,   // G: bottom-right cell
+    getData(cell + NORTH     ).r,   // B: top-left cell
+    getData(cell + NORTH_EAST).r    // A: top-right cell
+  );
+}
+
 bool isAtPointer() {
   return distance(u_pointerPosition, v_coordinates) < POINTER_AREA;
+}
+
+int countUniqueElements(ivec4 elements) {
+  int uniqueCount = 1;
+
+  bool e1 = elements[1] != elements[0];
+  bool e2 = elements[2] != elements[0] && elements[2] != elements[1];
+  bool e3 = elements[3] != elements[0] && elements[3] != elements[1] && elements[3] != elements[2];
+
+  uniqueCount += int(e1) + int(e2) + int(e3);
+
+  return uniqueCount;
 }
 
 void main() {
@@ -90,13 +115,23 @@ void main() {
   }
 
   ivec4 inputData = getData(cell);
-  int cellType = inputData.r;
+  int cellElement = inputData.r;
 
-  int oldPattern = encodePattern(getPattern(getBlock(cell)));
-  int newPattern = sand[oldPattern];
+  ivec2 block = getBlock(cell);
+  ivec4 elements = getBlockElements(block);
 
-  ivec4 decodedNewPattern = decodePattern(newPattern);
-  cellType = decodedNewPattern[getInBlockIndex(cell)];
+  int uniqueElementsCount = countUniqueElements(elements);
 
-  outData = ivec4(cellType, 0, 0, 0);
+  if(uniqueElementsCount == 1) {
+    outData = inputData;
+  }
+  else if(uniqueElementsCount == 2) {
+    int oldPattern = encodePattern(getPattern(block));
+    int newPattern = sand[oldPattern];
+
+    ivec4 decodedNewPattern = decodePattern(newPattern);
+    cellElement = decodedNewPattern[getInBlockIndex(cell)];
+
+    outData = ivec4(cellElement, inputData.gba);
+  }
 }
