@@ -8,6 +8,19 @@ import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
+enum InputKeys {
+  "NONE" = -1,
+  "Q" = 0,
+  "W" = 1,
+  "E" = 2,
+  "A" = 3,
+  "S" = 4,
+  "D" = 5,
+  "Z" = 6,
+  "X" = 7,
+  "C" = 8,
+}
+
 export class Sandfall {
   /* */ private readonly width = 40;
   /**/ private readonly height = 40;
@@ -17,7 +30,10 @@ export class Sandfall {
 
   private readonly totalCells = this.width * this.height;
 
-  private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
+  private readonly input = {
+    pointer: { coordinates: Vector2.zero(), isDown: 0 },
+    key: InputKeys.NONE,
+  };
   private initialized = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) { }
@@ -29,30 +45,89 @@ export class Sandfall {
     const gl = this.canvas.getContext("webgl2");
     if (!gl) throw new Error("Failed to get WebGL2 context");
 
-    this.setupPointer();
+    this.setupInput();
 
     this.main(gl);
   }
 
-  private setupPointer() {
+  private setupInput() {
     const canvasBounds = this.canvas.getBoundingClientRect();
+
+    // Pointer events
     this.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
       const x = ev.clientX - canvasBounds.left;
       const y = ev.clientY - canvasBounds.top;
-      this.pointer.coordinates.set(x / this.canvas.width, (this.canvas.height - y) / this.canvas.height);
+      this.input.pointer.coordinates.set(x / this.canvas.width, (this.canvas.height - y) / this.canvas.height);
     });
 
     window.addEventListener("pointerdown", () => {
-      this.pointer.isDown = 1;
+      this.input.pointer.isDown = 1;
     });
-
     window.addEventListener("pointerup", () => {
-      this.pointer.isDown = 0;
+      this.input.pointer.isDown = 0;
+    });
+    window.addEventListener("blur", () => {
+      this.input.pointer.isDown = 0;
     });
 
-    window.addEventListener("blur", () => {
-      this.pointer.isDown = 0;
-    });
+    // Keyboard events
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      switch (ev.key.toLowerCase()) {
+        case "q":
+          this.input.key = InputKeys.Q;
+          break;
+        case "w":
+          this.input.key = InputKeys.W;
+          break;
+        case "e":
+          this.input.key = InputKeys.E;
+          break;
+        case "a":
+          this.input.key = InputKeys.A;
+          break;
+        case "s":
+          this.input.key = InputKeys.S;
+          break;
+        case "d":
+          this.input.key = InputKeys.D;
+          break;
+        case "z":
+          this.input.key = InputKeys.Z;
+          break;
+        case "x":
+          this.input.key = InputKeys.X;
+          break;
+        case "c":
+          this.input.key = InputKeys.C;
+          break;
+        case "r":
+          window.location.reload();
+          break;
+        default:
+          break;
+      }
+    };
+
+    const handleKeyUp = (ev: KeyboardEvent) => {
+      switch (ev.key.toLowerCase()) {
+        case "q":
+        case "w":
+        case "e":
+        case "a":
+        case "s":
+        case "d":
+        case "z":
+        case "x":
+        case "c":
+          this.input.key = InputKeys.NONE;
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
   }
 
   private setupPrograms(gl: WebGL2RenderingContext) {
@@ -118,7 +193,7 @@ export class Sandfall {
       update: {
         aCanvasVertices: gl.getAttribLocation(programs.update, "a_canvasVertices"),
         uInputTextureIndex: gl.getUniformLocation(programs.update, "u_inputTextureIndex"),
-        uPointerArea: gl.getUniformLocation(programs.update, "u_pointerArea"),
+        uInputKey: gl.getUniformLocation(programs.update, "u_inputKey"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
         uIsPointerDown: gl.getUniformLocation(programs.update, "u_isPointerDown"),
         uPartition: gl.getUniformLocation(programs.update, "u_partition"),
@@ -190,9 +265,14 @@ export class Sandfall {
       gl.bindVertexArray(vertexArrayObjects.update);
 
       gl.uniform1i(locations.update.uInputTextureIndex, 0);
+      gl.uniform1i(locations.update.uInputKey, this.input.key);
       gl.uniform1i(locations.update.uPartition, partition ? 1 : 0);
-      gl.uniform1i(locations.update.uIsPointerDown, this.pointer.isDown);
-      gl.uniform2f(locations.update.uPointerPosition, this.pointer.coordinates.x, this.pointer.coordinates.y);
+      gl.uniform1i(locations.update.uIsPointerDown, this.input.pointer.isDown);
+      gl.uniform2f(
+        locations.update.uPointerPosition,
+        this.input.pointer.coordinates.x,
+        this.input.pointer.coordinates.y,
+      );
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };

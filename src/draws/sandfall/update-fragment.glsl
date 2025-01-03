@@ -8,16 +8,22 @@ in vec2 v_coordinates;
 out ivec4 outData;
 
 uniform isampler2D u_inputTextureIndex;
+uniform int u_inputKey;
 uniform bool u_partition;
 uniform bool u_isPointerDown;
 uniform vec2 u_pointerPosition;
 
-const float POINTER_AREA = 0.02;
+const float POINTER_AREA = 0.03;
 
 // Neighbor Offsets.
 const ivec2 NORTH      = ivec2(0,  1);
 const ivec2 NORTH_EAST = ivec2(1,  1);
 const ivec2 EAST       = ivec2(1,  0);
+
+const int EMPTY = 0;
+const int BLOCK = 1;
+const int SAND  = 2;
+const int WATER = 3;
 
 // Block Pattern Transforms.
 const int identity[16] = int[16]( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
@@ -109,8 +115,9 @@ void main() {
     return;
   }
 
-  if(isAtPointer() && u_isPointerDown) {
-    outData = ivec4(1, 0, 0, 0);
+  // Input Spawn
+  if(u_inputKey > -1 && isAtPointer()) {
+    outData = ivec4(u_inputKey, 0, 0, 0);
     return;
   }
 
