@@ -27,7 +27,7 @@ const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  3, 11,
 const int tron[16]     = int[16](15,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  0);
 
 // Encodes 4 bits into a number [0 to 15].
-int encodeBlockPattern(ivec4 cellStates) {
+int encodePattern(ivec4 cellStates) {
   return cellStates.r +       // R: bottom-left cell
          cellStates.g * 2 +   // G: bottom-right cell
          cellStates.b * 4 +   // B: top-left cell
@@ -35,7 +35,7 @@ int encodeBlockPattern(ivec4 cellStates) {
 }
 
 // Decodes a number [0 to 15] back to 4 bits.
-ivec4 decodeBlockPattern(int pattern) {
+ivec4 decodePattern(int pattern) {
   return ivec4(
      pattern       & 1,   // R: bottom-left cell
     (pattern >> 1) & 1,   // G: bottom-right cell
@@ -61,7 +61,7 @@ ivec4 getData(ivec2 cell) {
 }
 
 // The block pattern of cell types in 4 bits.
-ivec4 getBlockPattern(ivec2 block) {
+ivec4 getPattern(ivec2 block) {
   ivec2 cell = block * 2 - (u_partition ? 1 : 0);
   return ivec4(
     getData(cell             ).r,   // R: bottom-left cell
@@ -90,16 +90,13 @@ void main() {
   }
 
   ivec4 inputData = getData(cell);
-  int state = inputData.r;
+  int cellType = inputData.r;
 
-  ivec2 block = getBlock(cell);
-  ivec4 blockPattern = getBlockPattern(block);
-  int encodedPattern = encodeBlockPattern(blockPattern);
-  int newBlockPattern = sand[encodedPattern];
-  ivec4 decodedNewBlockPattern = decodeBlockPattern(newBlockPattern);
-  int inNewBlockIndex = getInBlockIndex(cell);
+  int oldPattern = encodePattern(getPattern(getBlock(cell)));
+  int newPattern = sand[oldPattern];
 
-  state = decodedNewBlockPattern[inNewBlockIndex];
+  ivec4 decodedNewPattern = decodePattern(newPattern);
+  cellType = decodedNewPattern[getInBlockIndex(cell)];
 
-  outData = ivec4(state, 0, 0, 0);
+  outData = ivec4(cellType, 0, 0, 0);
 }
