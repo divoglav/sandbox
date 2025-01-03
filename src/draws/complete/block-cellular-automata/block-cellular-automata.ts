@@ -1,11 +1,4 @@
-// TODO: cleanup for a simple block ca with only 1 boolean data channel.
-// TODO: convert to bvec4 in the update fragment shader.
-
-// TODO: consider multiple alterations.
-// TODO: build a pattern drawer!
-// TODO: try dissapearing water where if bottom single it dissapears.
-
-import { Random, Vector2, WebGL } from "../../utilities/utilities";
+import { Random, Vector2, WebGL } from "../../../utilities/utilities";
 
 import updateVertex from "./update-vertex.glsl";
 import updateFragment from "./update-fragment.glsl";
@@ -16,12 +9,15 @@ export class BlockCellularAutomata {
   private readonly width = 200;
   private readonly height = 200;
 
-  private readonly percent = 1;
-  private readonly FPS: number = -1; // Temporary; -1 for full
+  private readonly spawnChancePercent = 1;
+  private readonly pointerArea = 0.01;
 
   private readonly totalCells = this.width * this.height;
 
-  private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
+  private readonly pointer = {
+    coordinates: Vector2.zero(),
+    isDown: 0,
+  };
   private initialized = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) { }
@@ -76,16 +72,9 @@ export class BlockCellularAutomata {
 
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        state.push(Random.percent(this.percent) ? 1 : 0, 0, 0, 0);
+        state.push(Random.percent(this.spawnChancePercent) ? 1 : 0);
       }
     }
-
-    //for (let y = 0; y < this.height; y++) {
-    //  for (let x = 0; x < this.width; x++) {
-    //    const index = (y * this.width + x) * 4;
-    //    if (y === 0) state[index] = 1;
-    //  }
-    //}
 
     return state;
   }
@@ -103,13 +92,7 @@ export class BlockCellularAutomata {
     };
 
     const data = {
-      //prettier-ignore
-      dimensions: new Float32Array([
-        this.width,
-        this.height,
-        this.canvas.width,
-        this.canvas.height,
-      ]),
+      dimensions: new Float32Array([this.width, this.height, this.canvas.width, this.canvas.height]),
     };
 
     const dimensionsIndex = 0;
@@ -124,9 +107,9 @@ export class BlockCellularAutomata {
       update: {
         aCanvasVertices: gl.getAttribLocation(programs.update, "a_canvasVertices"),
         uInputTextureIndex: gl.getUniformLocation(programs.update, "u_inputTextureIndex"),
-        uPointerArea: gl.getUniformLocation(programs.update, "u_pointerArea"),
         uPointerPosition: gl.getUniformLocation(programs.update, "u_pointerPosition"),
         uIsPointerDown: gl.getUniformLocation(programs.update, "u_isPointerDown"),
+        uPointerArea: gl.getUniformLocation(programs.update, "u_pointerArea"),
         uPartition: gl.getUniformLocation(programs.update, "u_partition"),
       },
       render: {
@@ -163,11 +146,11 @@ export class BlockCellularAutomata {
     gl.vertexAttribPointer(locations.update.aCanvasVertices, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindTexture(gl.TEXTURE_2D, textures.input);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8I, this.width, this.height, 0, gl.RGBA_INTEGER, gl.BYTE, data.state);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8I, this.width, this.height, 0, gl.RED_INTEGER, gl.BYTE, data.state);
     WebGL.Texture.applyClampAndNearest(gl);
 
     gl.bindTexture(gl.TEXTURE_2D, textures.output);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8I, this.width, this.height, 0, gl.RGBA_INTEGER, gl.BYTE, data.state);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8I, this.width, this.height, 0, gl.RED_INTEGER, gl.BYTE, data.state);
     WebGL.Texture.applyClampAndNearest(gl);
 
     return { locations, vertexArrayObjects, textures, framebuffers };
@@ -197,8 +180,9 @@ export class BlockCellularAutomata {
 
       gl.uniform1i(locations.update.uInputTextureIndex, 0);
       gl.uniform1i(locations.update.uPartition, partition ? 1 : 0);
-      gl.uniform1i(locations.update.uIsPointerDown, this.pointer.isDown);
       gl.uniform2f(locations.update.uPointerPosition, this.pointer.coordinates.x, this.pointer.coordinates.y);
+      gl.uniform1i(locations.update.uIsPointerDown, this.pointer.isDown);
+      gl.uniform1f(locations.update.uPointerArea, this.pointerArea);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
@@ -228,11 +212,9 @@ export class BlockCellularAutomata {
       textures.input = textures.output;
       textures.output = swap;
 
-      if (this.FPS === -1) requestAnimationFrame(mainLoop);
+      requestAnimationFrame(mainLoop);
     };
 
     mainLoop();
-
-    if (this.FPS !== -1) setInterval(mainLoop, 1000 / this.FPS);
   }
 }
