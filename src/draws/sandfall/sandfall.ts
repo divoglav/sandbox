@@ -1,3 +1,4 @@
+// TODO: consider a texture buffer for the interaction arrays?
 // TODO: consider multiple alterations.
 // TODO: try dissapearing water where if bottom single it dissapears.
 
@@ -13,12 +14,11 @@ enum InputKeys {
   "Q" = 0,
   "W" = 1,
   "E" = 2,
-  "A" = 3,
-  "S" = 4,
-  "D" = 5,
-  "Z" = 6,
-  "X" = 7,
-  "C" = 8,
+  "R" = 3,
+  "A" = 4,
+  "S" = 5,
+  "D" = 6,
+  "F" = 7,
 }
 
 export class Sandfall {
@@ -36,7 +36,7 @@ export class Sandfall {
   };
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) { }
+  constructor(private readonly canvas: HTMLCanvasElement) {}
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -82,6 +82,9 @@ export class Sandfall {
         case "e":
           this.input.key = InputKeys.E;
           break;
+        case "r":
+          this.input.key = InputKeys.R;
+          break;
         case "a":
           this.input.key = InputKeys.A;
           break;
@@ -91,16 +94,10 @@ export class Sandfall {
         case "d":
           this.input.key = InputKeys.D;
           break;
-        case "z":
-          this.input.key = InputKeys.Z;
+        case "f":
+          this.input.key = InputKeys.F;
           break;
         case "x":
-          this.input.key = InputKeys.X;
-          break;
-        case "c":
-          this.input.key = InputKeys.C;
-          break;
-        case "r":
           window.location.reload();
           break;
         default:
@@ -113,12 +110,11 @@ export class Sandfall {
         case "q":
         case "w":
         case "e":
+        case "r":
         case "a":
         case "s":
         case "d":
-        case "z":
-        case "x":
-        case "c":
+        case "f":
           this.input.key = InputKeys.NONE;
           break;
         default:

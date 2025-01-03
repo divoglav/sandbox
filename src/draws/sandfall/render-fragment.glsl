@@ -16,8 +16,8 @@ layout(std140) uniform DimensionsStaticData {
 const vec4 COLORS[4] = vec4[4](
   vec4(0.1,  0.1,  0.1,  1.0),  // 0: Empty
   vec4(0.5,  0.5,  0.5,  1.0),  // 1: Block
-  vec4(0.5,  0.5,  0.1,  1.0),  // 2: Sand
-  vec4(0.0,  0.6,  0.3,  1.0)   // 3: Water
+  vec4(0.5,  0.4,  0.0,  1.0),  // 2: Sand
+  vec4(0.0,  0.3,  0.6,  1.0)   // 3: Water
 );
 
 void main() {
@@ -25,5 +25,6 @@ void main() {
                                 ivec2(v_coordinates * GRID_DIMENSIONS),
                                 0);
 
-  outColor = COLORS[outputData.r];
+  if(outputData.r == -1) outColor = vec4(1.0, 0.0, 1.0, 1.0); // Debug
+  else outColor = COLORS[outputData.r];
 }
