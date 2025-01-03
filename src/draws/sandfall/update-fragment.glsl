@@ -12,25 +12,18 @@ uniform bool u_partition;
 uniform bool u_isPointerDown;
 uniform vec2 u_pointerPosition;
 
-const ivec2 DIMENSIONS = ivec2(100, 100);
 const float POINTER_AREA = 0.01;
 
 // Neighbor Offsets.
-const ivec2 NORTH      = ivec2( 0,  1);
-const ivec2 NORTH_EAST = ivec2( 1,  1);
-const ivec2 EAST       = ivec2( 1,  0);
-const ivec2 SOUTH_EAST = ivec2( 1, -1);
-const ivec2 SOUTH      = ivec2( 0, -1);
-const ivec2 SOUTH_WEST = ivec2(-1, -1);
-const ivec2 WEST       = ivec2(-1,  0);
-const ivec2 NORTH_WEST = ivec2(-1,  1);
+const ivec2 NORTH      = ivec2(0,  1);
+const ivec2 NORTH_EAST = ivec2(1,  1);
+const ivec2 EAST       = ivec2(1,  0);
 
 // Block Pattern Transforms.
 const int identity[16] = int[16]( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
 const int clean[16]    = int[16]( 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0);
 const int fill[16]     = int[16](15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15);
 const int sand[16]     = int[16]( 0,  1,  2,  3,  1,  3,  3,  7,  2,  3,  3, 11,  3,  7, 11, 15);
-const int water[16]    = int[16]( 0,  2,  1,  3,  1,  3,  3, 11,  2,  3,  3,  7,  3,  7, 11, 15);
 const int tron[16]     = int[16](15,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  0);
 
 // Encodes 4 bits into a number [0 to 15].
@@ -69,7 +62,6 @@ ivec4 getData(ivec2 cell) {
 
 // The block pattern of cell types in 4 bits.
 ivec4 getBlockPattern(ivec2 block, bool alteration) {
-  // TODO: plus or minus for the alteration?
   ivec2 cell = block * 2 - (alteration ? 1 : 0);
   return ivec4(
     getData(cell             ).r,   // R: bottom-left cell
@@ -100,19 +92,12 @@ void main() {
   ivec4 inputData = getData(cell);
   int state = inputData.r;
 
-  bool alteration = u_partition;
-
-  ivec2 block = getBlock(cell, alteration);
-
-  ivec4 blockPattern = getBlockPattern(block, alteration);
-
+  ivec2 block = getBlock(cell, u_partition);
+  ivec4 blockPattern = getBlockPattern(block, u_partition);
   int encodedPattern = encodeBlockPattern(blockPattern);
-
   int newBlockPattern = sand[encodedPattern];
-
   ivec4 decodedNewBlockPattern = decodeBlockPattern(newBlockPattern);
-
-  int inNewBlockIndex = getInBlockIndex(cell, alteration);
+  int inNewBlockIndex = getInBlockIndex(cell, u_partition);
 
   state = decodedNewBlockPattern[inNewBlockIndex];
 

@@ -1,11 +1,11 @@
 import { onMount } from "solid-js";
-import { BlockCellularAutomata } from "../../draws/complete/block-cellular-automata/block-cellular-automata";
+import { Sandfall } from "../../draws/sandfall/sandfall";
 
 export const Home = () => {
   let canvasRef!: HTMLCanvasElement;
 
   onMount(() => {
-    new BlockCellularAutomata(canvasRef).init();
+    new Sandfall(canvasRef).init();
   });
 
   return (

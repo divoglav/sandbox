@@ -19,7 +19,7 @@ void main() {
 
   vec2 clipSpace = point * 2.0 - 1.0;
   gl_Position = vec4(clipSpace, 0.0, 1.0);
-  gl_PointSize = (CANVAS_DIMENSIONS.x / GRID_DIMENSIONS.x) + 0.1;
+  gl_PointSize = (CANVAS_DIMENSIONS.x / GRID_DIMENSIONS.x) - 1.0;
 
   v_coordinates = point;
 }

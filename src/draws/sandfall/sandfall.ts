@@ -1,8 +1,4 @@
-// TODO: cleanup for a simple block ca with only 1 boolean data channel.
-// TODO: convert to bvec4 in the update fragment shader.
-
 // TODO: consider multiple alterations.
-// TODO: build a pattern drawer!
 // TODO: try dissapearing water where if bottom single it dissapears.
 
 import { Random, Vector2, WebGL } from "../../utilities/utilities";
@@ -12,19 +8,19 @@ import updateFragment from "./update-fragment.glsl";
 import renderVertex from "./render-vertex.glsl";
 import renderFragment from "./render-fragment.glsl";
 
-export class BCA {
-  private readonly width = 200;
-  private readonly height = 200;
+export class Sandfall {
+  /* */ private readonly width = 40;
+  /**/ private readonly height = 40;
 
   private readonly percent = 1;
-  private readonly FPS: number = -1; // Temporary; -1 for full
+  private readonly FPS: number = 30; // Temporary; -1 for full
 
   private readonly totalCells = this.width * this.height;
 
   private readonly pointer = { coordinates: Vector2.zero(), isDown: 0 };
   private initialized = false;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {}
+  constructor(private readonly canvas: HTMLCanvasElement) { }
 
   init() {
     if (this.initialized) throw "Already initialized";
@@ -76,7 +72,11 @@ export class BCA {
 
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        state.push(Random.percent(this.percent) ? 1 : 0, 0, 0, 0);
+        const r = Random.percent(this.percent) ? 1 : 0;
+        const g = 0;
+        const b = 0;
+        const a = 0;
+        state.push(r, g, b, a);
       }
     }
 
@@ -103,13 +103,7 @@ export class BCA {
     };
 
     const data = {
-      //prettier-ignore
-      dimensions: new Float32Array([
-        this.width,
-        this.height,
-        this.canvas.width,
-        this.canvas.height,
-      ]),
+      dimensions: new Float32Array([this.width, this.height, this.canvas.width, this.canvas.height]),
     };
 
     const dimensionsIndex = 0;
