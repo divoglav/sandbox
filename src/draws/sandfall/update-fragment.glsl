@@ -12,7 +12,7 @@ uniform bool u_partition;
 uniform bool u_isPointerDown;
 uniform vec2 u_pointerPosition;
 
-const float POINTER_AREA = 0.01;
+const float POINTER_AREA = 0.02;
 
 // Neighbor Offsets.
 const ivec2 NORTH      = ivec2(0,  1);
@@ -45,14 +45,14 @@ ivec4 decodeBlockPattern(int pattern) {
 }
 
 // Coordinates of a 2x2 margolus block.
-ivec2 getBlock(ivec2 cellCoordinates, bool alteration) {
-  return (alteration ? cellCoordinates + 1 : cellCoordinates) / 2;
+ivec2 getBlock(ivec2 cellCoordinates) {
+  return (u_partition ? cellCoordinates + 1 : cellCoordinates) / 2;
 }
 
 // The block index [0 to 3] of a cell.
-int getInBlockIndex(ivec2 cell, bool alteration) {
-  ivec2 alteredCell = alteration ? cell + 1 : cell;
-  return (alteredCell.x & 1) + 2 * (alteredCell.y & 1);
+int getInBlockIndex(ivec2 cell) {
+  ivec2 partitionOffset = u_partition ? cell + 1 : cell;
+  return (partitionOffset.x & 1) + 2 * (partitionOffset.y & 1);
 }
 
 // Texel data.
@@ -61,8 +61,8 @@ ivec4 getData(ivec2 cell) {
 }
 
 // The block pattern of cell types in 4 bits.
-ivec4 getBlockPattern(ivec2 block, bool alteration) {
-  ivec2 cell = block * 2 - (alteration ? 1 : 0);
+ivec4 getBlockPattern(ivec2 block) {
+  ivec2 cell = block * 2 - (u_partition ? 1 : 0);
   return ivec4(
     getData(cell             ).r,   // R: bottom-left cell
     getData(cell + EAST      ).r,   // G: bottom-right cell
@@ -92,15 +92,14 @@ void main() {
   ivec4 inputData = getData(cell);
   int state = inputData.r;
 
-  ivec2 block = getBlock(cell, u_partition);
-  ivec4 blockPattern = getBlockPattern(block, u_partition);
+  ivec2 block = getBlock(cell);
+  ivec4 blockPattern = getBlockPattern(block);
   int encodedPattern = encodeBlockPattern(blockPattern);
   int newBlockPattern = sand[encodedPattern];
   ivec4 decodedNewBlockPattern = decodeBlockPattern(newBlockPattern);
-  int inNewBlockIndex = getInBlockIndex(cell, u_partition);
+  int inNewBlockIndex = getInBlockIndex(cell);
 
   state = decodedNewBlockPattern[inNewBlockIndex];
 
   outData = ivec4(state, 0, 0, 0);
 }
-
