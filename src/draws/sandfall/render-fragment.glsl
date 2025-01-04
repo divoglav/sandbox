@@ -25,6 +25,6 @@ void main() {
                                 ivec2(v_coordinates * GRID_DIMENSIONS),
                                 0);
 
-  if(outputData.r == -1) outColor = vec4(1.0, 0.0, 1.0, 1.0); // Debug
+  if(outputData.r == -1) outColor = vec4(0.5, 0.0, 0.5, 1.0); // Debug
   else outColor = COLORS[outputData.r];
 }

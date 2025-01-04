@@ -15,17 +15,15 @@ enum InputKeys {
   "W" = 1,
   "E" = 2,
   "R" = 3,
-  "A" = 4,
-  "S" = 5,
-  "D" = 6,
-  "F" = 7,
 }
 
 export class Sandfall {
-  /* */ private readonly width = 40;
-  /**/ private readonly height = 40;
+  ///* */ private readonly width = 40;
+  ///**/ private readonly height = 40;
+  /* */ private readonly width = 100;
+  /**/ private readonly height = 100;
 
-  private readonly percent = 1;
+  private readonly percent = 30;
   private readonly FPS: number = 30; // Temporary; -1 for full
 
   private readonly totalCells = this.width * this.height;
@@ -85,18 +83,6 @@ export class Sandfall {
         case "r":
           this.input.key = InputKeys.R;
           break;
-        case "a":
-          this.input.key = InputKeys.A;
-          break;
-        case "s":
-          this.input.key = InputKeys.S;
-          break;
-        case "d":
-          this.input.key = InputKeys.D;
-          break;
-        case "f":
-          this.input.key = InputKeys.F;
-          break;
         case "x":
           window.location.reload();
           break;
@@ -111,10 +97,6 @@ export class Sandfall {
         case "w":
         case "e":
         case "r":
-        case "a":
-        case "s":
-        case "d":
-        case "f":
           this.input.key = InputKeys.NONE;
           break;
         default:
@@ -143,7 +125,8 @@ export class Sandfall {
 
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
-        const r = Random.percent(this.percent) ? 1 : 0;
+        //const r = Random.percent(this.percent) ? 1 : 0;
+        const r = Random.percent(this.percent) ? 3 : 0;
         const g = 0;
         const b = 0;
         const a = 0;
@@ -151,12 +134,14 @@ export class Sandfall {
       }
     }
 
-    //for (let y = 0; y < this.height; y++) {
-    //  for (let x = 0; x < this.width; x++) {
-    //    const index = (y * this.width + x) * 4;
-    //    if (y === 0) state[index] = 1;
-    //  }
-    //}
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const index = (y * this.width + x) * 4;
+        if (y === 0) state[index] = 1;
+        if (x === 0) state[index] = 1;
+        if (x === this.width - 1) state[index] = 1;
+      }
+    }
 
     return state;
   }
